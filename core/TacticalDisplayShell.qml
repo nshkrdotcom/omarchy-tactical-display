@@ -38,7 +38,6 @@ FocusScope {
         // A quiet desktop remains visible, but labels sit on contrast-normalized planes.
         opacity: root.controller.effectiveSettings.privacy ? 1 : 0.91
     }
-    Rectangle { x: root.margin; y: 0; width: 52; height: 2; color: root.theme.colors.accent }
     Rectangle { x: root.margin-8; y: root.margin-8; width: root.width-2*root.margin+16; height: worldArea.y+8; color: root.theme.colors.background }
     Rectangle { x: root.margin-8; y: root.margin+worldArea.y+worldArea.height+4; width: root.width-2*root.margin+16; height: root.height-y; color: root.theme.colors.background }
     ColumnLayout {
