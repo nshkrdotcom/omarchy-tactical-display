@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "nshkr.tactical-display",
   "name": "Tactical Display",
-  "version": "1.0.0-rc.1",
+  "version": "1.0.0",
   "author": "nshkrdotcom",
   "license": "MIT",
   "description": "Local, ephemeral system instrumentation: connections, process topology, machine anatomy, storage I/O, and PipeWire routing.",
