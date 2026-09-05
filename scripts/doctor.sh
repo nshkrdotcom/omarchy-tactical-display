@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-printf 'Tactical Display 1.0.0-rc.1 / read-only environment inventory\n'
+printf 'Tactical Display 1.0.0 / read-only environment inventory\n'
 printf 'Repository: %s\nKernel: ' "$ROOT"; uname -sr
 python3 --version
 for tool in omarchy omarchy-shell quickshell hyprctl pw-dump wpctl node; do

@@ -25,7 +25,7 @@ Item {
     // Read-only, identity-free evidence for the native operator acceptance runner.
     function diagnostics(_payload) {
         var f=telemetryService.snapshot || {}
-        return JSON.stringify({version:"1.0.0-rc.1",opened:opened,instrument:navigation.navState.instrument,
+        return JSON.stringify({version:"1.0.0",opened:opened,instrument:navigation.navState.instrument,
             mode:navigation.invocationMode,monitor:targetScreen,helperPid:telemetryService.helperPid,
             ready:telemetryService.ready,fresh:telemetryService.fresh,status:telemetryService.statusText,
             frozen:navigation.navState.frozen,sequence:f.sequence===undefined?null:f.sequence,

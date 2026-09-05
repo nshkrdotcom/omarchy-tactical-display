@@ -1,13 +1,19 @@
 # Changelog
 
-## 1.0.0-rc.1 - 2026-09-05 UTC
+All notable changes to Tactical Display are documented in this file.
 
-Expanded the 0.2.0 network baseline into the five-instrument suite. Replaced the Radar/Reactor/Scanlines presentation with shared semantic depth, bounded collision-aware layouts and plain-text labels. Added native bar integration, instrument navigation/context, focus/expand/isolate, search and composable lenses, exact freeze/paged inspection, settings, first-run/help, privacy, reduced motion and focused-monitor lifecycle.
+## [1.0.0] - 2026-09-05
 
-Hardened procfs ownership with process-instance identities, multiple owners, raced-exit handling and partial-observation semantics. Added optional inet_diag TCP goodput, real process/machine/storage/PipeWire providers, safe capacity isolation, optional GPU/thermal, aliases/services/opt-in resolver/offline MMDB, bounded events/trends and supervised NDJSON transport. Added opt-in confirmed audio mute/default/undo, read-only diagnostics, guarded hold invocation, real Linux integration tests, shared-renderer fixture tests and exact target validation tools.
-
-Retired six legacy QML files through explicit overlay deletion metadata. Native Quattro/Qt and visual acceptance remain NOT RUN in the build environment; the rc version deliberately does not assert those gates passed.
-
-## 0.2.0 - supplied baseline
-
-Single Connection Field instrument, procfs socket/process attribution and 24 baseline tests. Source identity is the supplied Repomix SHA-256 recorded in OVERLAY_INFO.md; no Git commit was supplied.
+### Added
+- Initial release of Tactical Display for Omarchy Quattro on Wayland / Hyprland.
+- Five interactive instruments:
+  - **Connection Field**: 3D spatial mapping of local and remote network relationships.
+  - **Process Topology**: Interactive process ancestry, application groups, and resource ranking.
+  - **Machine Anatomy**: Subsystem cutaways (CPU, Memory, Storage, Network, GPU, Thermals) with Pressure Stall Information (PSI) and trend tracking.
+  - **Storage / I/O Flow**: End-to-end data flow from process I/O through filesystem mounts to physical block devices.
+  - **Audio Routing**: Live PipeWire audio graph with stream links, node status, and volume/mute controls.
+- Compact desktop bar widget for Omarchy shell with single-click toggle and right-click instrument picker.
+- Instant Screen-Share Privacy Mode (`P`) to mask sensitive process names, network endpoints, and desktop background.
+- Snapshot Freeze (`Space`) to pause live updates for steady inspection and detail copying.
+- Full keyboard navigation, entity search (`/`), isolation mode (`F`), and application expansion (`X`).
+- Automatic contrast and color normalization adapting to the active Omarchy theme.

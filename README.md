@@ -139,3 +139,9 @@ For technical specifications, architecture details, and developer docs:
 - [Visual System & Canvas Renderer](docs/VISUAL-DESIGN.md)
 - [Testing Guide](docs/TESTING.md)
 - [Operator Handoff](docs/HANDOFF.md)
+
+---
+
+## License
+
+This project is licensed under the [MIT License](LICENSE). Copyright (c) 2026 nshkrdotcom.
