@@ -48,15 +48,15 @@ function world(ctx,layout,p){
     } else if(mode==='machine') {
         label(ctx,'RESOURCE CUTAWAY / MEASURED CONTRIBUTORS',w*0.5,23,p,12,'center',0.72);
         layout.nodes.filter(function(n){return n.kind==='subsystem';}).forEach(function(n){plane(ctx,n.x,n.y+16,Math.min(w*0.25,270),Math.min(h*0.15,100),p,n.opacity);});
-        label(ctx,'Accounting relationships, not a simulated hardware bus',w*0.06,h*0.97,p,11,'left',0.55);
+        label(ctx,'Resource allocation and active contributors',w*0.06,h*0.97,p,11,'left',0.55);
     } else if(mode==='storage') {
         var levels=[['PROCESS I/O',0.17],['MOUNTED FILESYSTEMS',0.44],['LOGICAL / PARTITION LAYER',0.66],['BLOCK DEVICES',0.84]];
         levels.forEach(function(z){var y=h*z[1];poly(ctx,[[w*0.03,y+10],[w*0.13,y-26],[w*0.97,y-26],[w*0.87,y+10]],alpha(p.accent,0.018),alpha(p.accent,0.10));label(ctx,z[0],w*0.035,y-34,p,11,'left',0.70);});
-        label(ctx,'Up-notch = measured reads; down-notch = writes. Dashed links = open descriptors, NOT byte flow',w*0.06,h*0.97,p,11,'left',0.62);
+        label(ctx,'▲ Reads  ▼ Writes  ·  Dashed lines indicate open file descriptors',w*0.06,h*0.97,p,11,'left',0.62);
     } else {
         var cols=[['PLAYBACK / CAPTURE',0.15],['ROUTING',0.44],['SINKS / SOURCES',0.72],['DEVICES',0.90]];
         cols.forEach(function(c){var x=w*c[1];line(ctx,[[x,42],[x,h*0.92]],alpha(p.accent,0.10));label(ctx,c[0],x,23,p,11,'center',0.70);});
-        label(ctx,'Arrowheads follow actual PipeWire links; gain is not a level meter',w*0.06,h*0.97,p,11,'left',0.60);
+        label(ctx,'Signal routes follow PipeWire links  ·  Node values reflect gain',w*0.06,h*0.97,p,11,'left',0.60);
     }
 }
 function clampSize(v,a,b){return Math.max(a,Math.min(b,v));}

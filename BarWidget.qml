@@ -48,7 +48,7 @@ Ui.BarWidget {
             !root.vertical && root.preferences.barMode === "label"
                 ? "Tactical"
                 : "TD"
-        tooltipText: "Tactical Display / "+Instruments.info(root.preferences.lastInstrument).name+"\nLeft: toggle on focused monitor. Right: choose instrument.\nLocal telemetry runs only while open."+(root.invocationError?"\n"+root.invocationError:"")
+        tooltipText: "Tactical Display · "+Instruments.info(root.preferences.lastInstrument).name+"\nLeft-click: Toggle overlay · Right-click: Choose instrument"+(root.invocationError?"\n"+root.invocationError:"")
         Ui.OpticalGlyph {
             visible: button.compactMode
 

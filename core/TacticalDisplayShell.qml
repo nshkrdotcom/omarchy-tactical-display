@@ -59,7 +59,7 @@ FocusScope {
             ColumnLayout {
                 spacing: 3
                 InstrumentButton { text: root.liveState + (root.controller.view.degraded.length ? " / PARTIAL" : ""); hint: "Inspect provider availability, age, errors and provenance"; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.setFlag("showCapabilities",true) }
-                Text { Layout.alignment: Qt.AlignRight; visible: !root.compact; text: root.controller.effectiveSettings.privacy ? "PRIVACY ON / IDENTITIES HIDDEN" : "LOCAL ONLY / NO HISTORY WRITTEN"; textFormat: Text.PlainText; color: root.controller.effectiveSettings.privacy ? root.theme.colors.warning : root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
+                Text { Layout.alignment: Qt.AlignRight; visible: !root.compact; text: root.controller.effectiveSettings.privacy ? "PRIVACY ON" : "LOCAL SESSION"; textFormat: Text.PlainText; color: root.controller.effectiveSettings.privacy ? root.theme.colors.warning : root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
             }
         }
         Flow {

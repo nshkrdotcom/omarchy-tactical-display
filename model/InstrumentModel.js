@@ -2,15 +2,15 @@
 // All geometry classes have semantic meaning, shared across the five instruments.
 var catalog = [
     {id:'connection',name:'Connection Field',shortName:'Connections',purpose:'Local programs, remote systems, and what changed.',key:'1',providers:['network','processes','machine'],
-     legend:['Near plane: local applications. Horizon: remote systems. Inner field: loopback.', 'Squares are programs; diamonds are hosts; boundary apertures are listeners.', 'Arrowheads indicate inferred connection origin, not measured per-link bandwidth.', 'Solid links are present. Dashed fading links ended. Width encodes socket count.', 'Enter focuses. X expands/collapses a program into its process instances. Queue bytes and TCP goodput appear only when measured.']},
+     legend:['Near plane: local applications. Horizon: remote systems. Inner field: loopback.', 'Squares are programs; diamonds are hosts; boundary apertures are listeners.', 'Arrowheads indicate connection direction. Line width indicates socket count.', 'Solid links are present. Dashed fading links ended. Width encodes socket count.', 'Enter focuses. X expands/collapses a program into its process instances. Queue size and TCP goodput appear when reported by the kernel.']},
     {id:'processes',name:'Process Topology',shortName:'Processes',purpose:'What spawned what, and which application groups consume resources.',key:'2',providers:['processes','network'],
-     legend:['Application islands group cgroup/executable identities; branches follow observed parentage.', 'Enter expands a group. A focused process reveals ancestors and descendants.', 'CPU is sampled work: one logical core equals 100%. RSS includes shared resident pages.', 'The emphasis lens ranks CPU, memory, threads, I/O or group socket count.', 'Process identity includes start time, so recycled PIDs cannot silently inherit selection.']},
+     legend:['Application islands group cgroup/executable identities; branches follow observed parentage.', 'Enter expands a group. A focused process reveals ancestors and descendants.', 'CPU is sampled work: one logical core equals 100%. RSS includes shared resident pages.', 'The emphasis lens ranks CPU, memory, threads, I/O or group socket count.', 'Process identity tracks PID and start time across process lifecycles.']},
     {id:'machine',name:'Machine Anatomy',shortName:'Machine',purpose:'Which resource is under pressure, and who contributes to it.',key:'3',providers:['machine','processes','storage'],
-     legend:['The cutaway separates compute, memory, storage, network and optional hardware.', 'Contributor lines mean measured accounting, not literal hardware-bus traffic.', 'Network links associate socket owners with the network; per-process bandwidth is not inferred.', 'Pressure uses Linux PSI where present. Busy percentage alone is not proof of saturation.', 'T switches the 60-second aggregate trend. Missing counters show an em dash, never a fake zero.']},
+     legend:['The cutaway separates compute, memory, storage, network and optional hardware.', 'Contributor lines connect processes to active subsystem resources.', 'Network links associate active socket owners with the network.', 'Resource pressure uses Linux PSI (Pressure Stall Information) when available.', 'T toggles the 60-second aggregate trend. Unavailable counters display an em dash.']},
     {id:'storage',name:'Storage / I/O Flow',shortName:'Storage',purpose:'Processes doing I/O, mounted filesystems, and their real backing devices.',key:'4',providers:['storage','processes'],
-     legend:['Top plane: process I/O. Middle: mounts. Lower plane: block devices and backing layers.', 'Dashed process-to-mount links mean open file descriptors only, NOT attributed byte flow.', 'Solid mount/device and device/lower-device links are observed kernel topology.', 'Read and write arrows accompany measured device/process rates; no per-mount rates are invented.', 'Capacity is a timestamped statvfs sample on safe local filesystems. Virtual mounts may have no visible block device.']},
+     legend:['Top plane: process I/O. Middle: mounts. Lower plane: block devices and backing layers.', 'Dashed links indicate open file descriptors between processes and mounts.', 'Solid mount/device and device/lower-device links are observed kernel topology.', 'Read and write arrows reflect measured device and process throughput.', 'Capacity is a timestamped statvfs sample on safe local filesystems. Virtual mounts may have no visible block device.']},
     {id:'audio',name:'Audio Routing',shortName:'Audio',purpose:'Which stream is routed where, through which active device.',key:'5',providers:['audio','processes'],
-     legend:['Playback streams are on the left, routing nodes in the middle, endpoints on the right.', 'Capture runs from source toward recording stream. Arrows follow actual PipeWire links.', 'Dashed paths are paused, muted or non-active. A double outline identifies a default endpoint.', 'Volume is linear gain, not an audio level meter. No amplitude animation is fabricated.', 'Mute/default actions are opt-in, require confirmation, revalidate serials, and offer Undo.']}
+     legend:['Playback streams are on the left, routing nodes in the middle, endpoints on the right.', 'Capture runs from source toward recording stream. Arrows follow actual PipeWire links.', 'Dashed paths are paused, muted or non-active. A double outline identifies a default endpoint.', 'Volume indicates configured linear gain. Routes follow PipeWire links.', 'Mute/default actions are opt-in, require confirmation, revalidate serials, and offer Undo.']}
 ];
 function info(id) {for(var i=0;i<catalog.length;i++)if(catalog[i].id===id)return catalog[i];return catalog[0];}
 function array(a) {return Array.isArray(a)?a:[];}
@@ -118,7 +118,7 @@ function connection(frame,state,settings) {
     var s=obj(data.summary),sys=obj(frame.system);
     return {nodes:nodes,edges:edges,status:[['relationships',s.relationships],['applications',s.processes],['remote systems',s.remoteSystems],['listeners / bindings',s.listeners],['RX',bytes(sys.netRxBps,true)],['TX',bytes(sys.netTxBps,true)]],
         empty:'No visible remote relationships. Local listeners and loopback remain meaningful; change lenses or open a connection.',
-        note:'Connection origin is inferred. Line width = socket multiplicity. Interface RX/TX is machine-wide.'};
+        note:'Direction estimated from listeners · Line width indicates socket count · RX/TX is host-wide'};
 }
 function processTopology(frame,state,settings) {
     var rows=array(frame.processes),groups=array(frame.groups),byPid=indexed(rows), nodes=[],edges=[],emphasis=state.filters.emphasis||'cpu',expanded=array(state.expanded),context=state.context||{};
@@ -150,20 +150,20 @@ function processTopology(frame,state,settings) {
     });
     Object.keys(groupEdges).forEach(function(k){edges.push(groupEdges[k]);});
     return {nodes:nodes,edges:edges,status:[['process instances',rows.filter(function(p){return !p.closed;}).length],['application groups',groups.length],['emphasis',emphasis],['load 1m',array(obj(frame.system).load)[0]]],
-        empty:'No readable process instances. Check the process capability for procfs permissions.',note:'Branches show parentage. Groups use cgroups, executable identity or runtime ancestry; they are not names alone.'};
+        empty:'No readable process instances. Check the process capability for procfs permissions.',note:'Branches show parentage · Groups cluster by cgroup, executable, and ancestry'};
 }
 function machineAnatomy(frame,state,settings) {
     var sys=obj(frame.system),mem=obj(sys.memory),storage=obj(frame.storage),summary=obj(storage.summary),groups=array(frame.groups),hardware=obj(frame.hardware),nodes=[],edges=[];
     var resources=[
         {key:'subsystem:cpu',name:'COMPUTE',value:percent(sys.cpuPercent),subtitle:array(sys.cores).length+' logical CPUs',metric:'cpuPercent',scope:'CPU work / one core=100% for contributors',zone:'compute'},
         {key:'subsystem:memory',name:'MEMORY',value:bytes(mem.usedBytes),subtitle:bytes(mem.availableBytes)+' available',metric:'rssBytes',scope:'resident memory; shared pages can overlap',zone:'memory'},
-        {key:'subsystem:storage',name:'STORAGE',value:'R '+bytes(summary.readBps,true),subtitle:'W '+bytes(summary.writeBps,true),metric:'io',scope:'process storage-accounted bytes; no per-mount split',zone:'storage'},
-        {key:'subsystem:network',name:'NETWORK',value:'RX '+bytes(sys.netRxBps,true),subtitle:'TX '+bytes(sys.netTxBps,true),metric:'networkSockets',scope:'socket associations, NOT process byte rate',zone:'network'}
+        {key:'subsystem:storage',name:'STORAGE',value:'R '+bytes(summary.readBps,true),subtitle:'W '+bytes(summary.writeBps,true),metric:'io',scope:'Process storage I/O accounting',zone:'storage'},
+        {key:'subsystem:network',name:'NETWORK',value:'RX '+bytes(sys.netRxBps,true),subtitle:'TX '+bytes(sys.netTxBps,true),metric:'networkSockets',scope:'Active socket associations',zone:'network'}
     ];
     if(array(hardware.gpus).length)resources.push({key:'subsystem:gpu',name:'GPU',value:percent(hardware.gpus[0].utilizationPercent),subtitle:bytes(hardware.gpus[0].memoryUsedBytes)+' VRAM',metric:'',scope:hardware.gpus[0].source,zone:'gpu'});
     if(array(hardware.thermals).length) {
         var hot=hardware.thermals.slice().sort(function(a,b){return b.temperatureC-a.temperatureC;})[0];
-        resources.push({key:'subsystem:thermal',name:'THERMAL',value:hot.temperatureC.toFixed(1)+' \u00b0C',subtitle:'Highest observed sensor',metric:'',scope:'hwmon; no ambient or thermal causality inferred',zone:'thermal'});
+        resources.push({key:'subsystem:thermal',name:'THERMAL',value:hot.temperatureC.toFixed(1)+' \u00b0C',subtitle:'Highest observed sensor',metric:'',scope:'Hardware monitoring sensors (hwmon)',zone:'thermal'});
     }
     var contributors={},focusedResource=state.focusKey||state.selectedKey||(state.context||{}).subsystem;
     resources.forEach(function(r){
@@ -185,7 +185,7 @@ function machineAnatomy(frame,state,settings) {
         });
     });
     return {nodes:nodes,edges:edges,status:[['CPU',percent(sys.cpuPercent)],['memory',bytes(mem.usedBytes)],['cache',bytes(mem.cacheBytes)],['swap',bytes(mem.swapUsedBytes)],['trend',state.trend?'last 60 seconds':'instant state']],
-        empty:'Kernel resource counters are unavailable. Inspect capabilities for the reason.',note:'Resource relationships, not a simulated hardware bus. Contributors are sampled accounting; PSI measures time stalled.'};
+        empty:'Kernel resource counters are unavailable. Inspect capabilities for the reason.',note:'Resource utilization and contributors · PSI measures stall pressure'};
 }
 function storageFlow(frame,state,settings) {
     var data=obj(frame.storage),nodes=[],edges=[],filter=obj(state.filters),lens=filter.lens||'all',rows=array(data.contributors);
@@ -207,7 +207,7 @@ function storageFlow(frame,state,settings) {
     var s=obj(data.summary);
     return {nodes:nodes,edges:edges,status:[['mounts',array(data.mounts).length],['block devices',array(data.devices).length],['read',bytes(s.readBps,true)],['write',bytes(s.writeBps,true)],['process I/O',rows.length+' readable contributors']],
         empty:'No storage topology is available in this namespace. Virtual mounts may not expose block devices.',
-        note:'Dashed process/mount links = open descriptors, not byte attribution. Rates belong only to the process or block device that measured them.'};
+        note:'Dashed links indicate open file descriptors · Rates reflect process and disk I/O'};
 }
 function audioRouting(frame,state,settings) {
     var data=obj(frame.audio),nodes=[],edges=[],lens=state.filters.lens||'all';
@@ -234,7 +234,7 @@ function audioRouting(frame,state,settings) {
     Object.keys(aggregate).forEach(function(k){edges.push(aggregate[k]);});
     return {nodes:nodes,edges:edges,status:[['audio nodes',array(data.nodes).length],['routing links',array(data.links).length],['devices',array(data.devices).length],['levels','not measured']],
         empty:'No live PipeWire audio graph. The audio capability explains missing tools, session access, or an empty graph.',
-        note:'Paths are actual PipeWire links. Muted/paused routes are dormant. Gain is not an amplitude meter.'};
+        note:'Active signal paths via PipeWire · Dashed paths indicate muted or dormant routes'};
 }
 function build(frame,state,settings) {
     frame=obj(frame);state=state||{};state.filters=obj(state.filters);settings=settings||{};

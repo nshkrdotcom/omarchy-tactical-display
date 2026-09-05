@@ -122,7 +122,7 @@ FocusScope {
                     }
                     Rectangle { width: parent.width; height: 1; color: root.theme.colors.line }
                     Text { width: parent.width; text: "1-5  switch instrument\nTab / arrows  traverse entities    F6  navigate controls\nEnter  focus    X  expand / collapse    F  isolate\nEscape  close immediately    Backspace  back    R  reset\n/  search    Space  freeze / resume    D  exact details\nV  origin / storage / audio lens    E  process emphasis\nN  TCP / UDP    B  connection state    L  listeners    O  loopback\nT  machine trend    C  copy selected details\nP  privacy    I  instrument picker    ,  settings"; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
-                    Text { width: parent.width; text: "Freeze keeps an exact snapshot for inspection while collection continues. Switching instrument resumes live collection. Privacy hides labels and the desktop; it is not a security boundary. The helper never reads full process arguments."; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
+                    Text { width: parent.width; text: "Freeze pauses view updates for inspection while sampling continues in the background. Privacy mode masks entity identities and desktop contents for screen sharing."; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
                     InstrumentButton { text: "Show introduction / picker"; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: { root.controller.setFlag("showHelp",false); root.controller.setFlag("showPicker",true) } }
                 }
                 Column {
@@ -153,11 +153,11 @@ FocusScope {
                             Text { width: parent.width; text: preference.modelData.hint; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
                         }
                     }
-                    Text { width: parent.width; text: "Aliases, an optional local MMDB, and the race-safe hold shortcut are documented in docs/HANDOFF.md. No binding or bar-layout change occurs automatically."; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
+                    Text { width: parent.width; text: "Custom aliases, MaxMind GeoIP databases, and hotkey bindings can be configured in your shell settings."; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
                 }
                 Column {
                     width: parent.width; spacing: 16; visible: root.kind === "capabilities"
-                    Text { width: parent.width; text: root.controller.telemetry ? (root.controller.effectiveSettings.privacy && root.controller.telemetry.backendError ? "Backend issue; identity-bearing messages hidden by privacy." : root.controller.telemetry.backendError) || "The renderer receives versioned local snapshots. Missing values are not substituted with zero." : ""; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.bodySize }
+                    Text { width: parent.width; text: root.controller.telemetry ? (root.controller.effectiveSettings.privacy && root.controller.telemetry.backendError ? "Backend issue; identity-bearing messages hidden by privacy." : root.controller.telemetry.backendError) || "Telemetry providers stream live local metrics. Unavailable counters are shown as em dashes." : ""; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.bodySize }
                     Repeater {
                         model: root.capabilities
                         delegate: Column {
@@ -169,12 +169,12 @@ FocusScope {
                             Text { width: parent.width; text: "Cadence "+capability.modelData.intervalSeconds+" s / sample "+capability.modelData.durationMs+" ms / age "+(typeof capability.modelData.sampledAt==="number" && root.controller.displayFrame.monotonic ? Math.max(0,root.controller.displayFrame.monotonic-capability.modelData.sampledAt).toFixed(1)+" s" : "not sampled"); textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
                         }
                     }
-                    Text { width: parent.width; text: "Bounds and omissions: "+JSON.stringify(root.controller.displayFrame.limits||{}); textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
+                    Text { width: parent.width; visible: !!root.controller.displayFrame.limits && Object.keys(root.controller.displayFrame.limits).length > 0; text: "Collection limits: " + Object.keys(root.controller.displayFrame.limits||{}).map(k => k + ": " + root.controller.displayFrame.limits[k]).join(", "); textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
                     InstrumentButton { text: "Retry helper"; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: if (root.controller.telemetry) root.controller.telemetry.retry() }
                 }
                 Column {
                     width: parent.width; spacing: 16; visible: root.kind === "confirm"
-                    Text { width: parent.width; text: root.controller.pendingAction ? "Apply "+root.controller.pendingAction.action+" to "+(root.controller.effectiveSettings.privacy ? "selected audio entity" : root.controller.pendingAction.name)+"?\nThe current PipeWire object serial is checked again before wpctl. This changes real audio state. A previous successful change can be undone from the detail rail." : ""; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.foreground; font.family: root.theme.fontFamily; font.pixelSize: root.theme.bodySize }
+                    Text { width: parent.width; text: root.controller.pendingAction ? "Apply "+root.controller.pendingAction.action+" to "+(root.controller.effectiveSettings.privacy ? "selected audio entity" : root.controller.pendingAction.name)+"?\nThis will modify the active audio configuration. You can undo recent changes from the detail panel." : ""; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.foreground; font.family: root.theme.fontFamily; font.pixelSize: root.theme.bodySize }
                     Flow {
                         width: parent.width; spacing: 8
                         InstrumentButton { text: "Cancel"; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.bodySize; onClicked: root.controller.pendingAction = null }

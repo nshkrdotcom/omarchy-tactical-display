@@ -42,7 +42,7 @@ class QmlContractTests(unittest.TestCase):
         for name in ('connection', 'processTopology', 'machineAnatomy', 'storageFlow', 'audioRouting'):
             self.assertIn('function '+name+'(', model)
         self.assertIn('TacticalDisplayShell', self.overlay)
-        self.assertIn('not measured per-link bandwidth', model)
+        self.assertIn('Line width indicates socket count', model)
 
     def test_native_bar_uses_host_and_has_no_telemetry(self):
         bar = (ROOT / 'BarWidget.qml').read_text()

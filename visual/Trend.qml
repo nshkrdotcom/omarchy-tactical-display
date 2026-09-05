@@ -34,7 +34,7 @@ Item {
             }
         }
     }
-    Text { anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 8; text: "60 s / local memory only"; textFormat: Text.PlainText; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize; visible: root.width > 570 }
+    Text { anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 8; text: "Last 60 seconds"; textFormat: Text.PlainText; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize; visible: root.width > 570 }
     Canvas {
         id: trace
         anchors.fill: parent

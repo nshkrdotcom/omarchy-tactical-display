@@ -18,7 +18,7 @@ function fields(entity, data, privacy, frame) {
     exact('Process IDs',r.pids,'Readable process membership',true);
     exact('Parent PID',r.ppid,'/proc/<pid>/stat; parent start-time check',true);
     exact('Kernel start ticks',r.startTicks,'/proc/<pid>/stat; ticks since boot',true);
-    exact('Executable',r.executable,'Readable /proc/<pid>/exe; never full command arguments',true);
+    exact('Executable',r.executable,'/proc/<pid>/exe',true);
     exact('Cgroup',r.cgroup,'/proc/<pid>/cgroup',true);
     add('Grouping',r.groupProvenance||((kind==='application')?r.provenance:undefined),'Cgroup / executable / runtime ancestry','derived');
     exact('State',r.states||r.state,r.proto?'Kernel socket state':'Kernel / PipeWire state');
@@ -35,23 +35,23 @@ function fields(entity, data, privacy, frame) {
     exact('Remote endpoint',r.remote||r.address,'Kernel address/port tuple',true);
     exact('Address family',r.family===undefined?undefined:'IPv'+r.family,'Kernel socket family');
     if(r.nameSource!==undefined)add('Display-name source',privacy?'Identity hidden':r.nameSource,'Local alias / hosts / optional unverified PTR','enriched',true);
-    if(r.nameTrusted!==undefined)add('Name trust',r.nameTrusted?'Local mapping; not an authenticated server identity':'Unverified reverse DNS; IP remains authoritative','Enrichment policy','enriched');
+    if(r.nameTrusted!==undefined)add('Name trust',r.nameTrusted?'Local hostname mapping':'Reverse DNS lookup (PTR)','Enrichment policy','enriched');
     if(r.offline && !privacy) {
         add('Offline ASN',r.offline.asn,r.offline.provenance,'enriched',true);
         add('Offline organization',r.offline.organization,r.offline.provenance,'enriched',true);
         add('Approximate country',r.offline.country,r.offline.provenance,'enriched',true);
     }
     exact('Port / service',r.servicePort===undefined?r.port:r.servicePort,'Kernel endpoint tuple');
-    add('Service name',r.serviceName||undefined,'Unambiguous /etc/services mapping; not protocol detection','enriched');
+    add('Service name',r.serviceName||undefined,'/etc/services port mapping','enriched');
     exact('Ports',r.ports||r.listenerPorts,'Observed endpoints');
     exact('Live socket count',r.socketCount,'Aggregated kernel socket records');
     exact('New / closed sockets',r.newCount===undefined?undefined:r.newCount+' / '+r.closedCount,'Bounded monotonic snapshot diff');
     exact('Owners / members',r.processKeys,'Readable fd ownership / application membership',true);
-    if(r.queueBytes!==undefined)exact('Kernel queues',bytes(r.queueBytes),'Established/datagram queue occupancy; never a bandwidth estimate');
-    if(r.ackedBps!==undefined)rate('TCP acknowledged goodput',r.ackedBps,'inet_diag tcp_info cumulative bytes_acked delta; not wire rate');
-    if(r.receivedBps!==undefined)rate('TCP received goodput',r.receivedBps,'inet_diag tcp_info cumulative bytes_received delta; not wire rate');
+    if(r.queueBytes!==undefined)exact('Kernel queues',bytes(r.queueBytes),'Socket buffer queue occupancy');
+    if(r.ackedBps!==undefined)rate('TCP acknowledged goodput',r.ackedBps,'inet_diag tcp_info cumulative bytes_acked delta');
+    if(r.receivedBps!==undefined)rate('TCP received goodput',r.receivedBps,'inet_diag tcp_info cumulative bytes_received delta');
     if(r.rttMs!==undefined)exact('TCP RTT',r.rttMs===null?'Unavailable':r.rttMs+' ms','inet_diag tcp_info tcpi_rtt / 1000');
-    if(kind==='relationship'&&r.proto)add('Connection origin',r.kind+'; '+(r.provenance||''),'Matching live listener / protocol / bind / owner, not connect() provenance','inferred');
+    if(kind==='relationship'&&r.proto)add('Connection origin',r.kind+'; '+(r.provenance||''),'Matched via listener, protocol, and socket owner','inferred');
     if(r.sharedOwnership)exact('Attribution','Shared across groups; per-group goodput suppressed','Readable fd ownership');
     if(r.remoteKeys)exact('Related remotes',r.remoteKeys.length,'Distinct normalized IP identities');
     exact('Mount path',r.path,'/proc/self/mountinfo',true);
@@ -59,10 +59,10 @@ function fields(entity, data, privacy, frame) {
     exact('Mount source',r.source&&kind==='mount'?r.source:undefined,'/proc/self/mountinfo',true);
     exact('Major:minor',r.majorMinor,'Kernel device number');
     exact('Mount ID',r.mountId,'/proc/self/mountinfo');
-    exact('Backing layers',r.slaves,'sysfs slaves; structural, not transferred bytes',true);
+    exact('Backing layers',r.slaves,'sysfs backing devices',true);
     if(r.capacity){exact('Capacity',bytes(r.capacity.totalBytes),'statvfs; local filesystem only');exact('Available',bytes(r.capacity.availableBytes),'statvfs f_bavail x f_frsize');exact('Capacity sampled at',r.capacity.sampledAt,'Monotonic seconds; cached at most 15 s between probes');}
-    if(kind==='mount')exact('Per-mount throughput','Not measured. Open-descriptor links do not allocate process I/O to this mount.','No safe per-mount accounting source');
-    if(r.busyPercent!==undefined)add('Device busy proxy',finite(r.busyPercent)?r.busyPercent.toFixed(2)+'%':'Unavailable','diskstats io_ticks delta; not saturation on parallel hardware','derived');
+    if(kind==='mount')exact('Per-mount throughput','Not measured','Kernel storage accounting');
+    if(r.busyPercent!==undefined)add('Device busy proxy',finite(r.busyPercent)?r.busyPercent.toFixed(2)+'%':'Unavailable','diskstats io_ticks delta','derived');
     exact('I/O in flight',r.inFlight,'diskstats instantaneous request count');
     if(r.readAwaitMs!==undefined)add('Read request latency proxy',finite(r.readAwaitMs)?r.readAwaitMs.toFixed(3)+' ms':'Unavailable','delta read request ms / completed reads','derived');
     if(r.writeAwaitMs!==undefined)add('Write request latency proxy',finite(r.writeAwaitMs)?r.writeAwaitMs.toFixed(3)+' ms':'Unavailable','delta write request ms / completed writes','derived');
@@ -71,13 +71,13 @@ function fields(entity, data, privacy, frame) {
     exact('PipeWire serial',r.serial,'PipeWire object.serial + core epoch',true);
     exact('Default endpoint',r.default,'PipeWire default metadata');
     exact('Mute',r.mute,'PipeWire Props parameter');
-    exact('Linear gain',r.volume,'PipeWire Props; not an amplitude meter');
+    exact('Linear gain',r.volume,'PipeWire node volume properties');
     exact('Sample rate',r.sampleRate===undefined?undefined:r.sampleRate+' Hz','PipeWire node/format metadata when provided');
     exact('Sample format',r.sampleFormat,'PipeWire Format parameter when provided');
-    if(r.processKey&&(String(kind).indexOf('audio')===0||kind==='stream'||kind==='sink'||kind==='source'))add('Process association',r.processKey,'PipeWire application.process.id joined to current process instance; client-reported, not a security identity','reported',true);
+    if(r.processKey&&(String(kind).indexOf('audio')===0||kind==='stream'||kind==='sink'||kind==='source'))add('Process association',r.processKey,'PipeWire application.process.id joined to current process instance','reported',true);
     if(kind==='subsystem'){
         exact('Current state',r.value,'Selected resource snapshot');
-        add('Meaning',r.scope,'Resource accounting; no literal bus flow','derived');
+        add('Meaning',r.scope,'Subsystem resource accounting','derived');
         if(r.pressure!==undefined)exact('PSI some / avg10',finite(r.pressure)?r.pressure+'% stalled':'Unavailable','/proc/pressure; 10-second rolling average');
         var d=r.details||{};
         if(entity.key==='subsystem:cpu'){exact('Logical CPUs',(d.cores||[]).length,'/proc/stat / sysfs topology');exact('Load averages',d.load,'/proc/loadavg');}
