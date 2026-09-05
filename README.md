@@ -1,5 +1,10 @@
 # Tactical Display
 
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/nshkrdotcom/omarchy-tactical-display)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Platform](https://img.shields.io/badge/platform-Omarchy%20Quattro-purple.svg)](https://github.com/nshkrdotcom/omarchy-tactical-display)
+[![App Dependencies](https://img.shields.io/badge/app%20dependencies-0-brightgreen.svg)](#requirements)
+
 **Real-time system instrumentation and visual diagnostics for Omarchy Quattro.**
 
 Tactical Display gives you an interactive, HUD-style overlay across your desktop. Summon it with a keystroke, inspect active network sockets, process trees, hardware pressure, disk I/O, or audio routing, and dismiss it instantly.
