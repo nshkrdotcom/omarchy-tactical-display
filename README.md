@@ -29,11 +29,11 @@ Switch between instruments anytime by pressing `1` through `5`:
 
 ## Key Highlights
 
-- ⚡ **Zero Background Overhead**: The telemetry helper runs only while the overlay is open and terminates cleanly upon dismissal.
-- 🔒 **Screen-Share Privacy Mode**: Press `P` at any time to immediately mask process names, IP addresses, PIDs, and desktop transparency.
-- ❄️ **Snapshot Freeze**: Press `Space` to freeze the entire visualization in place. You can navigate, inspect, search, and copy details without live data shifting beneath you.
-- 🎨 **Theme Adaptive**: Automatically normalizes colors and contrast against your active Omarchy color scheme for maximum readability.
-- 🛡️ **Unprivileged & Local-First**: Uses safe kernel metrics (`/proc`, `sysfs`, `pw-dump`). No root access, no packet sniffing, and no cloud analytics.
+- **Zero Background Overhead**: The telemetry helper runs only while the overlay is open and terminates cleanly upon dismissal.
+- **Screen-Share Privacy Mode**: Press `P` at any time to immediately mask process names, IP addresses, PIDs, and desktop transparency.
+- **Snapshot Freeze**: Press `Space` to freeze the entire visualization in place. You can navigate, inspect, search, and copy details without live data shifting beneath you.
+- **Theme Adaptive**: Automatically normalizes colors and contrast against your active Omarchy color scheme for maximum readability.
+- **Unprivileged & Local-First**: Uses safe kernel metrics (`/proc`, `sysfs`, `pw-dump`). No root access, no packet sniffing, and no cloud analytics.
 
 ---
 
