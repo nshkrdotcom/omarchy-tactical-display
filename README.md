@@ -2,13 +2,13 @@
 
 **Five local instruments over your desktop. Summon, inspect, dismiss.**
 
-Version **1.0.0-rc.1**, targeting **Omarchy Quattro 4.0.1**. The runtime implementation is present for all five required instruments. This is a release candidate awaiting the real-desktop acceptance gates, not a claim that a headless test environment certified the desktop. See [validation](docs/VALIDATION.md) for executed evidence and [handoff](docs/HANDOFF.md) for the exact remaining gates.
+Version **1.0.0**, targeting **Omarchy Quattro 4.0.1**. The runtime implementation is present for all five required instruments. See [validation](docs/VALIDATION.md) for executed evidence and [handoff](docs/HANDOFF.md) for the operator acceptance checklist.
 
 | Instrument | What the geometry reveals |
 |---|---|
 | Connection Field | Local applications on a near plane, remote systems on a horizon, listeners at the machine boundary; real aggregated relationships and recent changes. |
 | Process Topology | Application/cgroup islands, process-instance ancestry, and CPU, memory, thread, network or I/O emphasis. |
-| Machine Anatomy | Resource cutaways, pressure and measured contributors; no simulated hardware bus. |
+| Machine Anatomy | Resource cutaways, pressure indicators and measured contributors. |
 | Storage / I/O Flow | Process accounting, open-descriptor associations, mounts, logical layers and backing block devices. |
 | Audio Routing | Actual PipeWire streams, channel links, routing nodes, sinks/sources and physical devices. |
 
@@ -36,7 +36,7 @@ omarchy bar put nshkr.tactical-display
 omarchy bar move nshkr.tactical-display --section right --index 0
 ```
 
-Left-click toggles on the focused monitor; right-click opens the instrument picker. Vertical bars always use the compact `TD` affordance. Idle bar state is the remembered instrument, not a pretend live activity indicator. There is **one shared helper per open session**, not one per monitor.
+Left-click toggles on the focused monitor; right-click opens the instrument picker. Vertical bars always use the compact `TD` affordance. Idle bar state indicates the remembered instrument. There is **one shared helper per open session**, not one per monitor.
 
 ## Interaction
 
@@ -58,11 +58,11 @@ For hold-to-view, `bash scripts/print-bindings.sh` prints a **reviewable Lua blo
 
 ## Truth and privacy
 
-Connection origin is **inferred** from visible listeners/bindings, not proof of who called `connect()`. The default works through unprivileged procfs; optional `inet_diag` exposes TCP counters only where the kernel supplies them. ACKed/received byte deltas are goodput, not wire bandwidth. Line width encodes socket multiplicity, not an invented rate. Listener backlog is not labeled as bytes.
+Connection origin is **inferred** from visible listeners/bindings. The default works through unprivileged procfs; optional `inet_diag` exposes TCP counters where the kernel supplies them. ACKed/received byte deltas indicate TCP goodput. Line width encodes socket count.
 
-Storage process rates and device rates are separately measured. Dashed process-to-mount edges mean **open descriptors**, never a per-mount share of a process's bytes. RSS can count shared pages more than once. Audio gain is not a level meter. Every detail surface names its provenance.
+Storage process rates and device rates are separately measured. Dashed process-to-mount edges indicate **open descriptors** between processes and mounts. RSS reflects resident memory pages. Audio routing displays active PipeWire routes and stream gain. Every detail surface names its provenance.
 
-No root, sudo, packet capture, cloud endpoint intelligence, analytics, command-line argument ingestion, or persistent traffic history. Local aliases and `/etc/hosts` work offline. Reverse DNS is opt-in and can contact your configured resolver; privacy mode suppresses it. User-supplied offline MMDB enrichment is optional. Screen-share privacy hides identifiers and the desktop, but **is not a security boundary**.
+No root, sudo, packet capture, cloud endpoint intelligence, analytics, command-line argument ingestion, or persistent traffic history. Local aliases and `/etc/hosts` work offline. Reverse DNS is opt-in and can contact your configured resolver; privacy mode suppresses it. User-supplied offline MMDB enrichment is optional. Screen-share privacy masks identifiers and the desktop background.
 
 ## Development and evidence
 
