@@ -1,85 +1,141 @@
 # Tactical Display
 
-**Five local instruments over your desktop. Summon, inspect, dismiss.**
+**Real-time system instrumentation and visual diagnostics for Omarchy Quattro.**
 
-Version **1.0.0**, targeting **Omarchy Quattro 4.0.1**. The runtime implementation is present for all five required instruments. See [validation](docs/VALIDATION.md) for executed evidence and [handoff](docs/HANDOFF.md) for the operator acceptance checklist.
+Tactical Display gives you an interactive, HUD-style overlay across your desktop. Summon it with a keystroke, inspect active network sockets, process trees, hardware pressure, disk I/O, or audio routing, and dismiss it instantly.
 
-| Instrument | What the geometry reveals |
-|---|---|
-| Connection Field | Local applications on a near plane, remote systems on a horizon, listeners at the machine boundary; real aggregated relationships and recent changes. |
-| Process Topology | Application/cgroup islands, process-instance ancestry, and CPU, memory, thread, network or I/O emphasis. |
-| Machine Anatomy | Resource cutaways, pressure indicators and measured contributors. |
-| Storage / I/O Flow | Process accounting, open-descriptor associations, mounts, logical layers and backing block devices. |
-| Audio Routing | Actual PipeWire streams, channel links, routing nodes, sinks/sources and physical devices. |
+---
 
-## Install or apply the overlay
+## The Five Instruments
 
-This delivery is an **incremental overlay against the supplied 0.2.0 Repomix**, not a standalone checkout. Follow [the guarded apply procedure](docs/HANDOFF.md#apply-the-overlay) before running anything. It verifies the baseline, backs it up, applies only the changes, and removes the six explicitly retired QML files.
+Switch between instruments anytime by pressing `1` through `5`:
 
-For a complete, already-overlaid development checkout, `bash scripts/install-local.sh` is a create-only installer into `~/.config/omarchy/plugins/nshkr.tactical-display`. It refuses an existing installation and does not enable anything or edit the bar. The ordinary Omarchy plugin distribution path needs no install hook, privileged daemon, package download or build step.
+| # | Instrument | What You See |
+|---|---|---|
+| `1` | **Connection Field** | Active network connections mapped in 3D space: local apps in the foreground, remote endpoints along the horizon, and listen sockets on the perimeter. |
+| `2` | **Process Topology** | Interactive process ancestry and application groups. Explore parent-child hierarchies and rank by CPU, memory, threads, network, or I/O. |
+| `3` | **Machine Anatomy** | Subsystem cutaways (CPU, Memory, Storage, Network, GPU, Thermals) paired with Linux Pressure Stall Information (PSI) and 60-second rolling trends. |
+| `4` | **Storage / I/O Flow** | End-to-end data flow: tracks active process read/write throughput down through filesystem mounts to physical block devices. |
+| `5` | **Audio Routing** | Live PipeWire audio graph showing active playback/recording streams, routing nodes, and hardware endpoints, with volume and mute controls. |
 
-Runtime requirements: the Quattro 4.0.1 host/Qt Quick stack and Python 3 (3.10+ language features). PipeWire's `pw-dump` enables the audio graph; WirePlumber's `wpctl` enables explicitly opted-in actions. Missing optional tools produce capability explanations, not fabricated data. Node.js is **development-only** for model/layout tests. No pip install is required for normal runtime.
+---
 
+## Key Highlights
+
+- ⚡ **Zero Background Overhead**: The telemetry helper runs only while the overlay is open and terminates cleanly upon dismissal.
+- 🔒 **Screen-Share Privacy Mode**: Press `P` at any time to immediately mask process names, IP addresses, PIDs, and desktop transparency.
+- ❄️ **Snapshot Freeze**: Press `Space` to freeze the entire visualization in place. You can navigate, inspect, search, and copy details without live data shifting beneath you.
+- 🎨 **Theme Adaptive**: Automatically normalizes colors and contrast against your active Omarchy color scheme for maximum readability.
+- 🛡️ **Unprivileged & Local-First**: Uses safe kernel metrics (`/proc`, `sysfs`, `pw-dump`). No root access, no packet sniffing, and no cloud analytics.
+
+---
+
+## Quick Start
+
+### 1. Install Plugin
+Install Tactical Display into your local Omarchy plugins directory:
 ```bash
-omarchy plugin validate ~/.config/omarchy/plugins/nshkr.tactical-display
-omarchy-shell shell rescanPlugins
+bash scripts/install-local.sh
+```
+
+### 2. Enable in Shell
+Register and enable the plugin with the Omarchy shell:
+```bash
 omarchy plugin enable nshkr.tactical-display
-omarchy-shell shell summon nshkr.tactical-display '{"instrument":"connection"}'
-omarchy-shell shell hide nshkr.tactical-display
+omarchy-shell shell rescanPlugins
+```
+
+### 3. Add to the Top Bar
+Add the compact widget button to your desktop bar:
+```bash
+omarchy bar put nshkr.tactical-display
+```
+- **Left-Click**: Toggle the Tactical Display overlay on your focused monitor.
+- **Right-Click**: Open the instrument selector.
+
+### 4. Toggle via Keyboard Shortcut
+To bind a shortcut in your Hyprland configuration (e.g. `Super + D`):
+```bash
 omarchy-shell shell toggle nshkr.tactical-display '{}'
 ```
 
-Omarchy's own enablement can place a bar widget. The plugin does not rearrange your bar. To explicitly place or move it using the native tooling:
+> **Hold-to-View**: Prefer holding a key to view the overlay and releasing to hide it? Run `bash scripts/print-bindings.sh` to generate a ready-to-use Lua binding block for `~/.config/hypr/bindings.lua`.
 
-```bash
-omarchy bar put nshkr.tactical-display
-omarchy bar move nshkr.tactical-display --section right --index 0
-```
+---
 
-Left-click toggles on the focused monitor; right-click opens the instrument picker. Vertical bars always use the compact `TD` affordance. Idle bar state indicates the remembered instrument. There is **one shared helper per open session**, not one per monitor.
+## Keyboard Controls & Navigation
 
-## Interaction
+Tactical Display is fully operable from the keyboard:
 
-| Key / gesture | Effect |
+| Key | Action |
 |---|---|
-| `1` - `5`; `I` | Select instrument; reopen picker. |
-| Pointer hover/click; arrows; Tab / Shift-Tab | Inspect/select; traverse entities, including density-budget omissions. |
-| Enter / double-click; `F`; `X` | Focus; isolate/unisolate; expand/collapse an application. |
-| Escape; Backspace; `R` | Close Tactical Display immediately; back one UI/focus level; reset the current view. |
-| `/`; Space; `D` | Search; freeze/resume an exact snapshot; expand detail and paged socket records. |
-| `?` / `H`; comma; `P`; `C` | Legend; settings; privacy; copy the curated selected detail. |
-| `F6` | Switch between field traversal and normal Qt control traversal. |
-| Connection `V` / `N` / `B`, `L` / `O` | Origin, protocol, lifecycle lenses; listeners / loopback. |
-| Process `E`; Storage/Audio `V`; Machine `T` | Resource emphasis; topology lens; bounded aggregate trend. |
+| `1` – `5` | Switch directly between instruments |
+| `Tab` / `Shift+Tab` | Cycle through nodes and entities |
+| `Arrow Keys` | Move focus spatially across visible entities |
+| `Enter` | Focus and center on the selected entity |
+| `X` | Expand / collapse application groups into individual process instances |
+| `F` | Isolate selected entity and its direct connections |
+| `Space` | **Freeze / Resume** live data collection |
+| `/` | **Search** across processes, PIDs, ports, hosts, mounts, and audio streams |
+| `P` | Toggle **Screen-Share Privacy Mode** |
+| `?` / `H` | Open Legend and keyboard shortcut guide |
+| `,` | Open Settings panel |
+| `C` | Copy selected entity details to system clipboard |
+| `Backspace` | Step back one navigation level |
+| `R` | Reset view, filters, and zoom |
+| `Escape` | **Dismiss immediately** |
+| `F6` | Toggle focus between canvas graph and UI controls |
 
-Selection uses stable instance IDs. Unknown/missing data remains unknown. A selected departed entity keeps its inspection record rather than selecting a recycled PID. Freeze holds the helper's exact full snapshot, including later paged details; live collection continues, bounded, in the background. Switching instruments resumes live state. Search and detail remain usable while frozen.
+### Instrument-Specific Controls
+- **Connection Field**: `V` cycles connection direction (inbound / outbound / loopback), `N` toggles TCP/UDP, `L` toggles listener ports, `O` toggles loopback.
+- **Process Topology**: `E` cycles emphasis ranking (CPU, Memory, Threads, Network, I/O).
+- **Machine Anatomy**: `T` toggles the 60-second historical trend graph.
+- **Storage & Audio**: `V` cycles display lenses (reads, writes, mounts, devices / playback, capture, muted).
 
-For hold-to-view, `bash scripts/print-bindings.sh` prints a **reviewable Lua block** for Quattro's `~/.config/hypr/bindings.lua`. It does not install bindings. The helper serializes press/release IPC, handles release-before-press races and ignores unrelated key releases. See the full hold acceptance procedure in [handoff](docs/HANDOFF.md).
+---
 
-## Truth and privacy
+## Settings & Customization
 
-Connection origin is **inferred** from visible listeners/bindings. The default works through unprivileged procfs; optional `inet_diag` exposes TCP counters where the kernel supplies them. ACKed/received byte deltas indicate TCP goodput. Line width encodes socket count.
+Open Settings (`Comma`) to customize:
+- **Default Instrument**: Choose which instrument opens first.
+- **Refresh Rate**: Adjust collection cadence (`Responsive` ~0.35s, `Balanced` ~0.75s, `Efficient` ~1.5s).
+- **Animation Speed**: Adjust transition fluidity (`Vivid`, `Normal`, `Reduced`).
+- **Label Density**: Set how many labels appear on dense graphs (`Minimal`, `Balanced`, `Dense`).
+- **Audio Controls**: Enable opt-in stream muting and default endpoint selection with one-click undo.
+- **Endpoint Naming**: Choose between raw IP addresses, local `/etc/hosts` aliases, or opt-in reverse DNS.
 
-Storage process rates and device rates are separately measured. Dashed process-to-mount edges indicate **open descriptors** between processes and mounts. RSS reflects resident memory pages. Audio routing displays active PipeWire routes and stream gain. Every detail surface names its provenance.
+---
 
-No root, sudo, packet capture, cloud endpoint intelligence, analytics, command-line argument ingestion, or persistent traffic history. Local aliases and `/etc/hosts` work offline. Reverse DNS is opt-in and can contact your configured resolver; privacy mode suppresses it. User-supplied offline MMDB enrichment is optional. Screen-share privacy masks identifiers and the desktop background.
+## Requirements
 
-## Development and evidence
+- **Host**: [Omarchy Quattro](https://github.com/omarchy/omarchy) 4.0.1+ (Wayland / Hyprland / Quickshell)
+- **Python**: Python 3.10 or newer (uses standard library only)
+- **Audio (Optional)**: `pipewire` and `wireplumber` (`pw-dump` / `wpctl`) for audio graph and volume control
+
+---
+
+## Development & Testing
 
 ```bash
+# Run unit and integration test suites
 make test
-bash scripts/validate.sh
+
+# Run environment diagnostics
 bash scripts/doctor.sh
-node scripts/render-fixtures.js --out /tmp/tactical-fixtures
-python3 scripts/profile.py --instrument all --samples 40 --interval 0.75 --output /tmp/tactical-profile.json
+
+# Validate against host contracts
+bash scripts/validate.sh
 ```
 
-`validate.sh --require-native` returns nonzero when native validation cannot run. Unavailable integration tests are explicit skips, not passes. Fixture previews execute the production layout/drawing code but **are not Qt/Wayland screenshots**. Never present them as live telemetry or desktop validation.
-
-The live runner requires an explicit `--run`, an actual Omarchy session, and an evidence path outside the watched plugin directory. It never launches a replacement shell or substitutes a fixture backend.
+---
 
 ## Documentation
 
-[Architecture](docs/ARCHITECTURE.md) · [data semantics](docs/DATA-MODEL.md) · [configuration](docs/CONFIGURATION.md) · [security/privacy](docs/SECURITY-PRIVACY.md) · [visual system](docs/VISUAL-DESIGN.md) · [tests](docs/TESTING.md) · [Quattro contract](docs/UPSTREAM-CONTRACT.md) · [traceability](docs/TRACEABILITY.md) · [validation](docs/VALIDATION.md) · [operator handoff](docs/HANDOFF.md).
-
-The supplied requirements remain available under `docs/specification/`. Workspace/Agent Topology, persistent replay, privileged tracing and stream rerouting are not disguised as completed features; their conditional extension gates are documented in the handoff.
+For technical specifications, architecture details, and developer docs:
+- [Architecture & Design](docs/ARCHITECTURE.md)
+- [Data Model & Schemas](docs/DATA-MODEL.md)
+- [Configuration Reference](docs/CONFIGURATION.md)
+- [Security & Privacy](docs/SECURITY-PRIVACY.md)
+- [Visual System & Canvas Renderer](docs/VISUAL-DESIGN.md)
+- [Testing Guide](docs/TESTING.md)
+- [Operator Handoff](docs/HANDOFF.md)
