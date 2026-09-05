@@ -144,4 +144,4 @@ For technical specifications, architecture details, and developer docs:
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE). Copyright (c) 2026 nshkrdotcom.
+Tactical Display is open-source software licensed under the [MIT License](LICENSE).
