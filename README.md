@@ -3,15 +3,12 @@
 [![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/nshkrdotcom/omarchy-tactical-display)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![Platform](https://img.shields.io/badge/platform-Omarchy%20Quattro-purple.svg)](https://github.com/nshkrdotcom/omarchy-tactical-display)
-[![App Dependencies](https://img.shields.io/badge/app%20dependencies-0-brightgreen.svg)](#requirements)
 
 **Real-time system instrumentation and visual diagnostics for Omarchy Quattro.**
 
-Tactical Display gives you an interactive, HUD-style overlay across your desktop. Summon it with a keystroke, inspect active network sockets, process trees, hardware pressure, disk I/O, or audio routing, and dismiss it instantly.
+Tactical Display is a fullscreen, keyboard-first observability overlay for Omarchy. It presents the machine as relationships rather than a conventional meter dashboard: network connections, process ancestry, machine pressure, storage topology, and PipeWire routing share one visual and inspection model.
 
 ![Tactical Display preview](preview.png)
-
----
 
 ## The Five Instruments
 
@@ -19,136 +16,136 @@ Switch between instruments anytime by pressing `1` through `5`:
 
 | # | Instrument | What You See |
 |---|---|---|
-| `1` | **Connection Field** | Active network connections mapped in 3D space: local apps in the foreground, remote endpoints along the horizon, and listen sockets on the perimeter. |
-| `2` | **Process Topology** | Interactive process ancestry and application groups. Explore parent-child hierarchies and rank by CPU, memory, threads, network, or I/O. |
-| `3` | **Machine Anatomy** | Subsystem cutaways (CPU, Memory, Storage, Network, GPU, Thermals) paired with Linux Pressure Stall Information (PSI) and 60-second rolling trends. |
-| `4` | **Storage / I/O Flow** | End-to-end data flow: tracks active process read/write throughput down through filesystem mounts to physical block devices. |
-| `5` | **Audio Routing** | Live PipeWire audio graph showing active playback/recording streams, routing nodes, and hardware endpoints, with volume and mute controls. |
-
----
+| `1` | **Connection Field** | Active network relationships between local applications, remote endpoints, loopback traffic, and visible listeners. |
+| `2` | **Process Topology** | Interactive process ancestry and application groups, with CPU, memory, thread, network, and I/O emphasis. |
+| `3` | **Machine Anatomy** | CPU, memory, storage, network, optional GPU/thermal state, Linux PSI, contributors, and rolling trends. |
+| `4` | **Storage / I/O Flow** | Process I/O beside mount, partition, device-mapper, and block-device topology. FD-to-mount links are structural and are not presented as per-mount byte attribution. |
+| `5` | **Audio Routing** | Live PipeWire streams, devices, nodes, and measured routes, with explicitly enabled/confirmed mute and default-device actions. |
 
 ## Key Highlights
 
-- **Zero Background Overhead**: The telemetry helper runs only while the overlay is open and terminates cleanly upon dismissal.
-- **Screen-Share Privacy Mode**: Press `P` at any time to immediately mask process names, IP addresses, PIDs, and desktop transparency.
-- **Snapshot Freeze**: Press `Space` to freeze the entire visualization in place. You can navigate, inspect, search, and copy details without live data shifting beneath you.
-- **Theme Adaptive**: Automatically normalizes colors and contrast against your active Omarchy color scheme for maximum readability.
-- **Unprivileged & Local-First**: Uses safe kernel metrics (`/proc`, `sysfs`, `pw-dump`). No root access, no packet sniffing, and no cloud analytics.
+- **Ephemeral collection**: the telemetry helper runs only while the overlay is open and is terminated on dismissal.
+- **Screen-share privacy mode**: `P` masks process/network identity and uses an opaque presentation.
+- **Snapshot freeze**: `Space` captures a stable inspection snapshot while collection continues behind it.
+- **Theme adaptive**: colors and contrast derive from the active Omarchy theme.
+- **Unprivileged and local-first**: core providers read user-accessible `/proc`, sysfs, and local desktop services. No packet capture, privileged daemon, cloud analytics, or required root access.
 
----
+## Install
 
-## Quick Start
+Omarchy plugins are Git repositories. From the public GitHub repository URL, install and enable Tactical Display with:
 
-### 1. Install Plugin
-Install Tactical Display into your local Omarchy plugins directory:
 ```bash
-bash scripts/install-local.sh
+omarchy plugin add <github-repository-url> --enable
 ```
 
-### 2. Enable in Shell
-Register and enable the plugin with the Omarchy shell:
+If you already have a local Git checkout, Omarchy also accepts the checkout path:
+
 ```bash
-omarchy plugin enable nshkr.tactical-display
-omarchy-shell shell rescanPlugins
+cd /path/to/tactical-display
+omarchy plugin add "$PWD" --enable
 ```
 
-### 3. Add to the Top Bar
-Add the compact widget button to your desktop bar:
+The compact bar widget declares the right section as its default. If you want to place or move it explicitly:
+
 ```bash
 omarchy bar put nshkr.tactical-display
+omarchy bar move nshkr.tactical-display --section right --index 0
 ```
-- **Left-Click**: Toggle the Tactical Display overlay on your focused monitor.
-- **Right-Click**: Open the instrument selector.
 
-### 4. Toggle via Keyboard Shortcut
-To bind a shortcut in your Hyprland configuration (e.g. `Super + D`):
+- **Left-click**: toggle Tactical Display on the focused monitor.
+- **Right-click**: open the instrument picker.
+
+### Update
+
+Git-managed installations use Omarchy's normal update path:
+
 ```bash
-omarchy-shell shell toggle nshkr.tactical-display '{}'
+omarchy plugin update nshkr.tactical-display
 ```
 
-> **Hold-to-View**: Prefer holding a key to view the overlay and releasing to hide it? Run `bash scripts/print-bindings.sh` to generate a ready-to-use Lua binding block for `~/.config/hypr/bindings.lua`.
+### Remove
 
----
+```bash
+omarchy plugin remove nshkr.tactical-display
+```
+
+Tactical Display does not install a privileged helper, persistent host service, or external database. Removing the plugin removes its Omarchy checkout/config entry; a user-supplied offline MMDB remains wherever the user placed it.
 
 ## Keyboard Controls & Navigation
-
-Tactical Display is fully operable from the keyboard:
 
 | Key | Action |
 |---|---|
 | `1` – `5` | Switch directly between instruments |
+| `I` | Open/close the instrument picker; arrows navigate and `Enter` selects |
 | `Tab` / `Shift+Tab` | Cycle through nodes and entities |
-| `Arrow Keys` | Move focus spatially across visible entities |
-| `Enter` | Focus and center on the selected entity |
+| `Arrow Keys` | Move selection through visible entities |
+| `Enter` | Focus the selected entity |
 | `X` | Expand / collapse application groups into individual process instances |
 | `F` | Isolate selected entity and its direct connections |
-| `Space` | **Freeze / Resume** live data collection |
-| `/` | **Search** across processes, PIDs, ports, hosts, mounts, and audio streams |
-| `P` | Toggle **Screen-Share Privacy Mode** |
-| `?` / `H` | Open Legend and keyboard shortcut guide |
-| `,` | Open Settings panel |
-| `C` | Copy selected entity details to system clipboard |
+| `Space` | Freeze / resume the inspection snapshot |
+| `/` | Search processes, PIDs, ports, hosts, mounts, and audio streams |
+| `P` | Toggle screen-share privacy mode |
+| `?` / `H` | Open the legend and keyboard guide |
+| `,` | Open settings |
+| `C` | Copy selected entity details to the clipboard |
 | `Backspace` | Step back one navigation level |
-| `R` | Reset view, filters, and zoom |
-| `Escape` | **Dismiss immediately** |
-| `F6` | Toggle focus between canvas graph and UI controls |
+| `R` | Reset the current view |
+| `Escape` | Dismiss immediately |
+| `F6` | Toggle focus between the visualization and controls |
 
-### Instrument-Specific Controls
-- **Connection Field**: `V` cycles connection direction (inbound / outbound / loopback), `N` toggles TCP/UDP, `L` toggles listener ports, `O` toggles loopback.
-- **Process Topology**: `E` cycles emphasis ranking (CPU, Memory, Threads, Network, I/O).
-- **Machine Anatomy**: `T` toggles the 60-second historical trend graph.
-- **Storage & Audio**: `V` cycles display lenses (reads, writes, mounts, devices / playback, capture, muted).
-
----
+Instrument-specific controls are listed in the in-app legend. Notable shortcuts include `V` for connection/storage/audio lenses, `E` for process emphasis, `T` for machine trends, and `L`/`O` for Connection Field listener/loopback visibility.
 
 ## Settings & Customization
 
-Open Settings (`Comma`) to customize:
-- **Default Instrument**: Choose which instrument opens first.
-- **Refresh Rate**: Adjust collection cadence (`Responsive` ~0.35s, `Balanced` ~0.75s, `Efficient` ~1.5s).
-- **Animation Speed**: Adjust transition fluidity (`Vivid`, `Normal`, `Reduced`).
-- **Label Density**: Set how many labels appear on dense graphs (`Minimal`, `Balanced`, `Dense`).
-- **Audio Controls**: Enable opt-in stream muting and default endpoint selection with one-click undo.
-- **Endpoint Naming**: Choose between raw IP addresses, local `/etc/hosts` aliases, or opt-in reverse DNS.
+Open Settings with `,` to configure the default instrument, refresh profile, animation level, label density, endpoint naming, privacy, bar presentation, and optional audio actions. Configuration is merged through Omarchy's native plugin settings API; Tactical Display does not rewrite `shell.json` wholesale.
 
----
+## Requirements and External Dependencies
 
-## Requirements
+### Required runtime
 
-- **Host**: [Omarchy Quattro](https://github.com/omarchy/omarchy) 4.0.1+ (Wayland / Hyprland / Quickshell)
-- **Python**: Python 3.10 or newer (uses standard library only)
-- **Audio (Optional)**: `pipewire` and `wireplumber` (`pw-dump` / `wpctl`) for audio graph and volume control
+- **Omarchy Quattro 4.0.1+** on Wayland/Hyprland/Quickshell.
+- **Python 3.10+**. Core telemetry uses the Python standard library only.
 
----
+### Optional runtime capabilities
+
+- **PipeWire / WirePlumber**: `pw-dump` provides the audio graph; `wpctl` is required only for the opt-in mute/default actions.
+- **NVIDIA utilities**: `nvidia-smi` is an optional GPU telemetry fallback when suitable sysfs data is unavailable. It is never installed by this plugin.
+- **Offline network enrichment**: a user-supplied local MMDB can be enabled with `tdOfflineDb`; this optional path requires the Python `maxminddb` module. Tactical Display does not download a database or Python package.
+- **Reverse DNS**: disabled by default. Selecting DNS naming uses the system resolver and may generate normal resolver network traffic.
+
+### Development only
+
+- **Node.js** is used for the JavaScript model/layout test suite and fixture renderer; it is not required by the live plugin.
+
+No `sudo` or `pkexec` is required. The repository contains no package-manager bootstrap, install hook, bundled executable binary, systemd service, or automatic remote build.
 
 ## Development & Testing
 
 ```bash
-# Run unit and integration test suites
 make test
-
-# Run environment diagnostics
 bash scripts/doctor.sh
-
-# Validate against host contracts
 bash scripts/validate.sh
 ```
 
----
+On an Omarchy workstation, the release gate is:
+
+```bash
+bash scripts/validate.sh --require-native
+omarchy plugin validate .
+```
+
+See [Testing](docs/TESTING.md) for automated and real-host checks.
 
 ## Documentation
 
-For technical specifications, architecture details, and developer docs:
 - [Architecture & Design](docs/ARCHITECTURE.md)
 - [Data Model & Schemas](docs/DATA-MODEL.md)
 - [Configuration Reference](docs/CONFIGURATION.md)
 - [Security & Privacy](docs/SECURITY-PRIVACY.md)
 - [Visual System & Canvas Renderer](docs/VISUAL-DESIGN.md)
 - [Testing Guide](docs/TESTING.md)
-- [Operator Handoff](docs/HANDOFF.md)
-
----
+- [Omarchy Runtime Contract](docs/UPSTREAM-CONTRACT.md)
 
 ## License
 
-Tactical Display is open-source software licensed under the [MIT License](LICENSE).
+Tactical Display is licensed under the [MIT License](LICENSE).

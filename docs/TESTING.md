@@ -8,13 +8,26 @@ bash scripts/validate.sh
 bash scripts/validate.sh --require-native
 ```
 
-Python unittest covers preserved socket parsing/model tests, real loopback TCP listener/client/accepted/closed lifecycle, IPv6 and UDP, actual FD ownership including shared sockets, process ancestry/CPU/I/O, real temporary fsync writes/mounts, schema/capabilities/events/limits, guarded hold ordering/locking and provider command cleanup. The runtime suite creates and tears down **50 actual telemetry helpers**, checks partial stdin frames/malformed commands/freeze correlation/EOF shutdown and fails closed for unapproved actions. This is not 50 desktop opens.
+Python unittest covers socket parsing/model behavior, real loopback TCP lifecycle, IPv6/UDP and FD ownership, process ancestry/CPU/I/O, storage accounting/mounts, schema/capabilities/events/limits, guarded hold ordering/locking and provider command cleanup. The runtime suite starts and tears down real telemetry helpers and checks malformed transport, freeze correlation, EOF shutdown and fail-closed actions.
 
-Node executes the same production Settings, Navigation, Protocol, InstrumentModel, Inspection, Palette and Layout functions. It checks composable lenses, fuzzy search, cross-instrument instance context, stability, privacy/copy redaction, malformed/deep/non-finite data, all five modes at quiet/normal/dense and multiple sizes, collision-free primary labels, selected reservation, contrast, explicit expansion, directed Audio focus, metric-aware Machine focus and dense render bounds. It also starts the **real production helper** and validates its frame with the frontend schema.
+Node executes the production Settings, Navigation, Protocol, InstrumentModel, Inspection, Palette and Layout modules. It covers composable lenses, search, cross-instrument context, privacy/redaction, malformed/deep/non-finite data, all five modes at multiple densities/sizes, label bounds, selected reservation, contrast, expansion, audio routing focus, machine contributor metrics and bounded dense rendering. It also validates a real production-helper frame against the frontend schema.
 
-Fixtures are deliberately fictional and only imported by tests/render tooling. Deterministic fixture edge cases do not replace real Linux/PipeWire/native integrations. A missing inet_diag capability, non-loopback test address or PipeWire session results in a reasoned skip. Check the skipped list on the real target; do not count it as passed.
+Fixtures are fictional and test-only. They never replace real Linux/PipeWire/native integrations. Environment-dependent provider tests may skip when the corresponding real capability is unavailable; a skip is not a pass of that integration.
 
-The validation script runs source tests, Python compilation without bytecode output, shell syntax, manifests/checksums, then installed native manifest validation and QML lint when available. Exit 77 under `--require-native` means an environment-dependent gate was unavailable, not success. The normal non-native mode reports PARTIAL explicitly.
+`scripts/validate.sh` runs the source suites, Python and shell syntax checks, Omarchy manifest validation when available, and native QML lint when the Omarchy import tree is available. `--require-native` exits non-zero/77 if native validation cannot run.
+
+## Publication contract regression checks
+
+The repository tests also enforce the file-level marketplace contract that is under source control:
+
+- required root manifest metadata and safe entry points;
+- permanent non-`omarchy.*` plugin ID;
+- root README with install, update/removal and dependency documentation;
+- root MIT license;
+- no repository symlinks;
+- public documentation references only files that are part of the repository.
+
+Public GitHub visibility, global marketplace ID uniqueness, ownership/permission, exact-commit marketplace scanning and the optional preview image are external submission facts and cannot be proven by unit tests in this repository.
 
 ## Visual fixtures
 
@@ -22,7 +35,7 @@ The validation script runs source tests, Python compilation without bytecode out
 node scripts/render-fixtures.js --out /tmp/tactical-fixtures
 ```
 
-50 SVG combinations plus metrics are developer evidence, not Qt captures. Read VISUAL-DESIGN.md for what was actually inspected and the target matrix. Never remove their test labels or feed them to the production backend to claim a live test.
+The generated SVG matrix is developer evidence, not Qt/Wayland screenshots. Read `VISUAL-DESIGN.md` for the native visual matrix. Never feed fixtures to the production backend or present fixture output as live telemetry.
 
 ## Real native lifecycle and soak
 
@@ -31,9 +44,9 @@ python3 scripts/live-validate.py --run --cycles 50 --soak-seconds 1800 --output 
 python3 scripts/audio-integration.py --run
 ```
 
-The first requires actual Omarchy, hyprctl and a Wayland session, takes keyboard focus as it cycles the overlay, checks the native read-only diagnostic method, validates exactly one helper at each open, verifies helper exit after hide, samples real helper/shell CPU counters/RSS and cycles modes through a 30-minute soak. Its report leaves pointer/key/hold/bar/hotplug/reload/visual gates explicitly NOT RUN. Read and exercise those separately. A shorter run never qualifies as the 30-minute gate.
+The first command requires Omarchy, Hyprland and Wayland. It repeatedly summons/hides the real overlay, checks exactly one helper, verifies teardown and freshness, and performs a 30-minute instrument soak. Manual pointer/key/bar/hotplug/reload/visual gates still require direct observation.
 
-The audio runner requires real pw-dump/pw-play and a sink. It plays 12 seconds of generated silence in a temporary WAV, verifies the actual stream and outgoing PipeWire route, then terminates its own stream. It does not alter defaults/volume/mute, perform a destructive device change or use fixture routes. Missing session/sink/tools exits 77.
+The audio runner requires `pw-dump`, `pw-play` and a real sink. It creates a temporary silent stream, verifies that the actual stream and route appear, then cleans up its own stream. It does not change defaults, volume or mute.
 
 ## Profiling
 
@@ -41,12 +54,6 @@ The audio runner requires real pw-dump/pw-play and a sink. It plays 12 seconds o
 python3 scripts/profile.py --instrument all --samples 40 --interval 0.75 --output /tmp/tactical-profile.json
 ```
 
-Reports actual sample p50/p95/max, JSON frame size, own CPU time and current/high-water RSS, counts and capability statuses. No raw process/socket names are saved. This measures backend collection/serialization overhead, not QML model/layout or GPU frames. Native diagnostics add rendered counts and measured QML layout milliseconds; the live runner records real process stats. Review CPU deltas per clock tick and RSS across comparable points, not one high-water sample as a leak verdict.
+This measures backend collection/serialization overhead, not QML/GPU frame performance. Keep profiles, logs and screenshots outside the watched plugin tree.
 
-For desktop frame hitches, run the existing shell with its supported Qt/Quickshell profiling tools only after preserving the normal launch environment; do not start a second competing shell. Save observations and actual timings, compare closed/open idle, generate a realistic workload and inspect every mode. Exact manual recipes and pass/fail criteria are in HANDOFF.md.
-
-## Overlay acceptance
-
-The delivered ZIP is tested over a pristine reconstructed baseline, deletion metadata applied, final files compared byte-for-byte, complete automated tests rerun and both checksum manifests verified. OVERLAY_BASELINE.sha256 verifies the supplied baseline before extraction. MANIFEST.sha256 covers the final content tree except checksum self/cyclic entries; OVERLAY_MANIFEST.sha256 covers ZIP payload except itself. Untracked caches/.git are not product content.
-
-Classify gates as PASS (executed), FAIL (executed and failed), PARTIAL (state exact subset), or NOT RUN (missing environment). Native command not installed is never a successful native test.
+Classify results as PASS (executed), FAIL (executed and failed), PARTIAL (state the exact subset), or NOT RUN (environment unavailable). Missing native tooling is never a successful native test.

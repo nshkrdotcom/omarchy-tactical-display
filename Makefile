@@ -1,5 +1,5 @@
 SHELL := /bin/bash
-.PHONY: test validate doctor preview bindings install-local backend-once
+.PHONY: test validate doctor preview bindings backend-once
 test:
 	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_*.py' -v
 	node --test --test-reporter=spec tests/js/*.test.js
@@ -11,7 +11,5 @@ preview:
 	node scripts/render-fixtures.js --out /tmp/tactical-display-fixtures
 bindings:
 	bash scripts/print-bindings.sh
-install-local:
-	bash scripts/install-local.sh
 backend-once:
 	python3 scripts/telemetry.py --once --instrument all | python3 -m json.tool

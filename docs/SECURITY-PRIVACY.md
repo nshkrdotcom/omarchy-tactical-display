@@ -26,6 +26,6 @@ Observation is default. Opted-in actions require an explicit confirmation and ar
 
 ## Denial of service and residual limits
 
-Scans, frames, nesting, command bursts, event/trend retention, layout and labels have bounds. Incomplete scans do not manufacture exit storms. Close stops timers/collection, drops state and unloads the overlay. The helper restarts with a finite backoff budget, not a hot loop. A user-controlled kernel/PipeWire session can still withhold data; a broken Qt/compositor driver is outside the backend's guarantees. Actual Qt teardown, hotplug and long-session resource behavior require the target gates in HANDOFF.md.
+Scans, frames, nesting, command bursts, event/trend retention, layout and labels have bounds. Incomplete scans do not manufacture exit storms. Close stops timers/collection, drops state and unloads the overlay. The helper restarts with a finite backoff budget, not a hot loop. A user-controlled kernel/PipeWire session can still withhold data; a broken Qt/compositor driver is outside the backend's guarantees. Actual Qt teardown, hotplug and long-session resource behavior require the native lifecycle checks in TESTING.md.
 
-The overlay ZIP contains no font binaries, secrets or captured endpoint/process history. Test fixtures are explicitly fictional. Before sharing diagnostic output, review it; doctor may report local tool paths and errors, and raw `telemetry.py --once` output is sensitive by design.
+The repository contains no font binaries, secrets or captured endpoint/process history. Test fixtures are explicitly fictional. Before sharing diagnostic output, review it; doctor may report local tool paths and errors, and raw `telemetry.py --once` output is sensitive by design.

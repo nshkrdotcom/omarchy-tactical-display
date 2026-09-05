@@ -19,13 +19,13 @@ Quattro shell (one existing long-running Quickshell)
 
 `model/` separates configuration, typed navigation intent, telemetry validation, instrument transformations and inspection. `visual/` owns stable layout, collision/label budgets, palette contrast and rendering. No instrument delegate reads Linux files or spawns commands. One shared renderer has **five distinct semantic model/layout/drawing paths**, not five labels over a generic percentage dashboard.
 
-## Changes to the supplied plan
+## Design decisions
 
 **Use the actual native settings API.** Tagged Quattro exposes `shell.updateEntryInline`; the release merges existing inline entry keys before calling it because the host replaces that entry's fields. A second private configuration file would create conflicting authorities. Newer settings versions are read-only. A missing enablement entry yields explicit session-only behavior.
 
 **Aggregate first, expand deliberately.** Default/focused Connection Field retains application relationships; `X` reveals individual process instances. Following a shared remote must not accidentally select every unrelated application. Process Topology unfolds small trees immediately and collapses large application populations until selected/searched. Audio focus follows directed paths all the way from the selected sink to its upstream streams, without traversing sideways across unrelated routes.
 
-**Retain the proven fallback, add measured kernel capability.** The baseline procfs endian/parser behavior remains covered by its original tests. inet_diag is optional, deadline/length checked, and retried conservatively; procfs still supplies UDP and fallback socket state. The former inode/PID-only ownership and generic-runtime grouping were replaced, not perpetuated.
+**Retain the portable fallback, add measured kernel capability.** Procfs endian/parser behavior remains covered by regression tests. inet_diag is optional, deadline/length checked, and retried conservatively; procfs still supplies UDP and fallback socket state. The former inode/PID-only ownership and generic-runtime grouping were replaced, not perpetuated.
 
 **Do not fabricate storage attribution.** fdinfo `mnt_id` exposes a structural open-descriptor association only. Process and device rates retain their separate denominators. Capacity is queried in a timed, killable child for an allowlist of local filesystem types; remote/FUSE capacity is unavailable rather than risking an uninterruptible synchronous call in the shell.
 
@@ -47,6 +47,6 @@ Application identity prefers meaningful application/cgroup data, then canonical 
 
 ## Limits and deliberate extensions
 
-All source paths exist; no rendering fixture or dummy provider is a production fallback. Optional stream rerouting requires an API with safely validated route/serial semantics; it is not implemented by guessing wpctl commands. Workspace/Agent Topology remains gated behind P0 target acceptance, as required by the supplied plan. There is no persistent replay database, privileged eBPF, traffic capture, process killer, mount manager or cloud service.
+All source paths exist; no rendering fixture or dummy provider is a production fallback. Optional stream rerouting requires an API with safely validated route/serial semantics; it is not implemented by guessing wpctl commands. Workspace/Agent Topology is outside the 1.0.0 scope and should only be added when reliable workspace/project identities and sourced agent states exist. There is no persistent replay database, privileged eBPF, traffic capture, process killer, mount manager or cloud service.
 
-See DATA-MODEL.md for field semantics and limits, UPSTREAM-CONTRACT.md for the runtime evidence, and TRACEABILITY.md for file/test mappings.
+See DATA-MODEL.md for field semantics and limits, UPSTREAM-CONTRACT.md for the Omarchy runtime contract, and TESTING.md for automated and native acceptance coverage.

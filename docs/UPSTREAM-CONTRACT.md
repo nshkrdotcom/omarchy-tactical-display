@@ -1,6 +1,6 @@
 # Quattro 4.0.1 runtime verification
 
-Source review: **2026-09-05 UTC**, pinned to Git tag **v4.0.1**, not the moving `quattro` branch. No installed Omarchy/Qt/Quickshell version or local upstream Git commit was available in the build environment. A tag is recorded as a tag, not misrepresented as a tested host commit. Capture the actual workstation versions/commit using doctor before acceptance.
+Runtime contract review: **2026-09-05 UTC**, pinned to Omarchy Git tag **v4.0.1** rather than the moving `quattro` branch. This document records the host APIs Tactical Display relies on; it is not a promise that every later Omarchy version preserves them unchanged. Run `scripts/doctor.sh` and native validation on the workstation before publishing or after a host upgrade.
 
 Primary source references:
 
@@ -40,4 +40,4 @@ hyprctl version
 omarchy plugin validate ~/.config/omarchy/plugins/nshkr.tactical-display
 ```
 
-Run the installed qmllint against the installed Quattro import tree. Compare any import-metadata warnings with a first-party widget using the same imports; save both exact logs. Do not globally silence warnings or label all warnings upstream noise. There was no native lint execution here and no claimed installed desktop acceptance. The sources above establish the integration contract, not proof that this QML has run on hardware.
+Run the installed `qmllint` against the installed Quattro import tree. Compare import-metadata warnings with a first-party widget using the same imports and fix plugin-local warnings rather than globally suppressing them. The source references above establish the integration contract; native validation and direct interaction establish compatibility with the actual workstation.
