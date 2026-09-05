@@ -10,9 +10,11 @@ Tactical Display is a fullscreen, keyboard-first observability overlay for Omarc
 
 ![Tactical Display preview](preview.png)
 
-## The Five Instruments
+## Features
 
-Switch between instruments anytime by pressing `1` through `5`:
+### Five Instruments
+
+Switch between instruments at any time by pressing `1` through `5`:
 
 | # | Instrument | What You See |
 |---|---|---|
@@ -22,7 +24,7 @@ Switch between instruments anytime by pressing `1` through `5`:
 | `4` | **Storage / I/O Flow** | Process I/O beside mount, partition, device-mapper, and block-device topology. FD-to-mount links are structural and are not presented as per-mount byte attribution. |
 | `5` | **Audio Routing** | Live PipeWire streams, devices, nodes, and measured routes, with explicitly enabled/confirmed mute and default-device actions. |
 
-## Key Highlights
+### Highlights
 
 - **Ephemeral collection**: the telemetry helper runs only while the overlay is open and is terminated on dismissal.
 - **Screen-share privacy mode**: `P` masks process/network identity and uses an opaque presentation.
@@ -30,22 +32,42 @@ Switch between instruments anytime by pressing `1` through `5`:
 - **Theme adaptive**: colors and contrast derive from the active Omarchy theme.
 - **Unprivileged and local-first**: core providers read user-accessible `/proc`, sysfs, and local desktop services. No packet capture, privileged daemon, cloud analytics, or required root access.
 
+## Requirements and External Dependencies
+
+### Required runtime
+
+- **Omarchy Quattro 4.0.1+** on Wayland/Hyprland/Quickshell.
+- **Python 3.10+**. Core telemetry uses the Python standard library only.
+
+### Optional runtime capabilities
+
+- **PipeWire / WirePlumber**: `pw-dump` provides the audio graph; `wpctl` is required only for the opt-in mute/default actions.
+- **NVIDIA utilities**: `nvidia-smi` is an optional GPU telemetry fallback when suitable sysfs data is unavailable. It is never installed by this plugin.
+- **Offline network enrichment**: a user-supplied local MMDB can be enabled with `tdOfflineDb`; this optional path requires the Python `maxminddb` module. Tactical Display does not download a database or Python package.
+- **Reverse DNS**: disabled by default. Selecting DNS naming uses the system resolver and may generate normal resolver network traffic.
+
+### Development only
+
+- **Node.js** is used for the JavaScript model/layout test suite and fixture renderer; it is not required by the live plugin.
+
+No `sudo` or `pkexec` is required. The repository contains no package-manager bootstrap, install hook, bundled executable binary, systemd service, or automatic remote build.
+
 ## Install
 
-Omarchy plugins are Git repositories. From the public GitHub repository URL, install and enable Tactical Display with:
+Install and enable Tactical Display directly from its public Git repository:
 
 ```bash
-omarchy plugin add <github-repository-url> --enable
+omarchy plugin add https://github.com/nshkrdotcom/omarchy-tactical-display.git --enable
 ```
 
 If you already have a local Git checkout, Omarchy also accepts the checkout path:
 
 ```bash
-cd /path/to/tactical-display
+cd /path/to/omarchy-tactical-display
 omarchy plugin add "$PWD" --enable
 ```
 
-The compact bar widget declares the right section as its default. If you want to place or move it explicitly:
+The compact bar widget declares the right section as its default. To place or move it explicitly:
 
 ```bash
 omarchy bar put nshkr.tactical-display
@@ -71,7 +93,9 @@ omarchy plugin remove nshkr.tactical-display
 
 Tactical Display does not install a privileged helper, persistent host service, or external database. Removing the plugin removes its Omarchy checkout/config entry; a user-supplied offline MMDB remains wherever the user placed it.
 
-## Keyboard Controls & Navigation
+## Usage
+
+### Keyboard Controls and Navigation
 
 | Key | Action |
 |---|---|
@@ -95,31 +119,21 @@ Tactical Display does not install a privileged helper, persistent host service, 
 
 Instrument-specific controls are listed in the in-app legend. Notable shortcuts include `V` for connection/storage/audio lenses, `E` for process emphasis, `T` for machine trends, and `L`/`O` for Connection Field listener/loopback visibility.
 
-## Settings & Customization
+## Configuration
 
 Open Settings with `,` to configure the default instrument, refresh profile, animation level, label density, endpoint naming, privacy, bar presentation, and optional audio actions. Configuration is merged through Omarchy's native plugin settings API; Tactical Display does not rewrite `shell.json` wholesale.
 
-## Requirements and External Dependencies
+See the [Configuration Reference](docs/CONFIGURATION.md) for the complete native settings contract.
 
-### Required runtime
+## Security and Privacy
 
-- **Omarchy Quattro 4.0.1+** on Wayland/Hyprland/Quickshell.
-- **Python 3.10+**. Core telemetry uses the Python standard library only.
+Tactical Display is local-first and unprivileged. Its core providers read user-accessible `/proc`, sysfs, and local desktop services; it does not require packet capture, a privileged daemon, cloud analytics, `sudo`, or `pkexec`. Screen-share privacy mode masks process/network identity in the presentation, while optional DNS and offline-MMDB enrichment remain explicit capabilities.
 
-### Optional runtime capabilities
+See [Security and Privacy](docs/SECURITY-PRIVACY.md) for the full threat model, data-handling boundaries, and optional-action behavior.
 
-- **PipeWire / WirePlumber**: `pw-dump` provides the audio graph; `wpctl` is required only for the opt-in mute/default actions.
-- **NVIDIA utilities**: `nvidia-smi` is an optional GPU telemetry fallback when suitable sysfs data is unavailable. It is never installed by this plugin.
-- **Offline network enrichment**: a user-supplied local MMDB can be enabled with `tdOfflineDb`; this optional path requires the Python `maxminddb` module. Tactical Display does not download a database or Python package.
-- **Reverse DNS**: disabled by default. Selecting DNS naming uses the system resolver and may generate normal resolver network traffic.
+## Development and Testing
 
-### Development only
-
-- **Node.js** is used for the JavaScript model/layout test suite and fixture renderer; it is not required by the live plugin.
-
-No `sudo` or `pkexec` is required. The repository contains no package-manager bootstrap, install hook, bundled executable binary, systemd service, or automatic remote build.
-
-## Development & Testing
+Run the local test and validation suite:
 
 ```bash
 make test
@@ -127,7 +141,7 @@ bash scripts/doctor.sh
 bash scripts/validate.sh
 ```
 
-On an Omarchy workstation, the release gate is:
+On an Omarchy workstation, run the native release gates as well:
 
 ```bash
 bash scripts/validate.sh --require-native
@@ -138,14 +152,14 @@ See [Testing](docs/TESTING.md) for automated and real-host checks.
 
 ## Documentation
 
-- [Architecture & Design](docs/ARCHITECTURE.md)
-- [Data Model & Schemas](docs/DATA-MODEL.md)
+- [Architecture and Design](docs/ARCHITECTURE.md)
+- [Data Model and Schemas](docs/DATA-MODEL.md)
 - [Configuration Reference](docs/CONFIGURATION.md)
-- [Security & Privacy](docs/SECURITY-PRIVACY.md)
-- [Visual System & Canvas Renderer](docs/VISUAL-DESIGN.md)
+- [Security and Privacy](docs/SECURITY-PRIVACY.md)
+- [Visual System and Canvas Renderer](docs/VISUAL-DESIGN.md)
 - [Testing Guide](docs/TESTING.md)
 - [Omarchy Runtime Contract](docs/UPSTREAM-CONTRACT.md)
 
 ## License
 
-Tactical Display is licensed under the [MIT License](LICENSE).
+Tactical Display is open-source software licensed under the [MIT License](LICENSE).
