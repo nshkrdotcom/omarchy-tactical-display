@@ -4,6 +4,8 @@
 
 Tactical Display gives you an interactive, HUD-style overlay across your desktop. Summon it with a keystroke, inspect active network sockets, process trees, hardware pressure, disk I/O, or audio routing, and dismiss it instantly.
 
+![Tactical Display preview](preview.png)
+
 ---
 
 ## The Five Instruments
