@@ -1,278 +1,122 @@
-# Tactical Display 0.2 - Agent Handoff
+# Operator and next-agent handoff
 
-## Read this first
+Target: **Omarchy Quattro 4.0.1**. Delivery: **1.0.0-rc.1 incremental overlay** against the supplied 0.2.0 repository. All five instrument paths and product shell are implemented. Real desktop/layer-shell/font/performance acceptance is still required; read VALIDATION.md before calling this production-certified.
 
-Version 0.2 intentionally abandons the original Network Radar/System Reactor product presentation. The Quattro lifecycle/backend plumbing survived; the primary instrument did not.
+## Apply the overlay
 
-The approved product thesis is now:
-
-> **See every program on this machine communicating with every remote system in real time.**
-
-The next agent's job is **run on the real Omarchy workstation -> observe -> debug -> visually harden -> finalize**. Do not resurrect decorative radar rings or the reactor as the main experience unless the user explicitly reverses this decision.
-
-## What changed in 0.2
-
-Implemented:
-
-- one focused **Connection Field** instrument;
-- local process hubs inside a semantic machine boundary;
-- remote IP systems around the external perimeter;
-- outbound/right, likely-inbound/left, mixed/top, loopback/inner spatial sectors;
-- real process↔remote relationship links aggregated from visible kernel sockets;
-- directional tracers that explicitly do **not** claim per-link bandwidth;
-- line thickness from socket multiplicity + real kernel queue pressure;
-- listener apertures attached to local process ownership instead of fake remote contacts;
-- new relationship pulses and closed relationship decay;
-- click-to-isolate process or remote topology;
-- process/remote detail panel;
-- real summary counts and machine-wide RX/TX;
-- richer backend `network` model in addition to raw `contacts`;
-- process executable/argv0 identity without exposing full command arguments;
-- updated docs/tests/bindings/manifest.
-
-Legacy files `RadarInstrument.qml` and `ReactorInstrument.qml` may still exist after applying the incremental zip because an unzip overlay cannot delete files. `Overlay.qml` does not reference them.
-
-## Current runtime architecture
-
-```text
-Omarchy shell summon
-    -> Overlay.qml
-       -> one Telemetry.qml backend
-          -> scripts/telemetry.py
-             -> raw socket contacts
-             -> network aggregation model
-       -> per-screen PanelWindow
-          -> HudSurface
-             -> NetworkFieldInstrument
-```
-
-Quattro assumptions were rechecked against current docs before this build:
-
-- third-party plugins live under `~/.config/omarchy/plugins/<id>/`;
-- overlay entry point is an `Item`;
-- plugin shares the long-running shell process;
-- overlay exposes `open(payloadJson)` / `close()`;
-- `omarchy-shell shell summon|hide|toggle` is canonical IPC.
-
-## Known validation already achieved by the user on the prior version
-
-On the actual Quattro host, `omarchy plugin validate .` completed silently/successfully. The user's `qmllint` invocation also demonstrated that `qs.Commons` and `QProcess::ExitStatus` warnings occur when linting Omarchy's own `PluginRegistry.qml` under the same command, so those warnings alone are not evidence of a plugin defect.
-
-Do not waste time trying to make external `qmllint` completely warning-free if identical environment warnings occur on first-party Quattro QML. Runtime errors and plugin-specific lint/parser errors still matter.
-
-## First 0.2 target-host session
-
-Apply the incremental archive over the existing development plugin/repository, then:
+Run in the exact baseline checkout, not an unrelated version. These steps preserve a recovery copy and verify the source before overwriting anything. Replace ZIP with its actual downloaded path.
 
 ```bash
-cd ~/.config/omarchy/plugins/nshkr.tactical-display
+ZIP="$HOME/Downloads/nshkr.tactical-display-1.0.0-rc.1-overlay.zip"
+cd "$HOME/.config/omarchy/plugins/nshkr.tactical-display"
+# Stop and reconcile any unexpected baseline differences rather than forcing them.
+unzip -p "$ZIP" OVERLAY_BASELINE.sha256 | sha256sum --check -
+BACKUP="$HOME/nshkr-tactical-display-before-$(date +%Y%m%d-%H%M%S).tar.gz"
+tar --exclude='./.git' --exclude='./__pycache__' -czf "$BACKUP" .
+printf 'Recovery copy: %s\n' "$BACKUP"
+omarchy-shell shell hide nshkr.tactical-display
+unzip -o "$ZIP" -d .
+python3 scripts/apply-overlay-deletions.py
+python3 scripts/apply-overlay-deletions.py --apply
+sha256sum --check MANIFEST.sha256
+sha256sum --check OVERLAY_MANIFEST.sha256
+bash scripts/validate.sh --require-native
 omarchy plugin validate .
+omarchy-shell shell rescanPlugins
 omarchy-restart-shell
-omarchy-shell shell summon nshkr.tactical-display '{}'
 ```
 
-If it does not render:
+`OVERLAY_DELETE.txt` lists exactly six legacy QML files: HudSurface, MetricReadout, Scanlines, NetworkFieldInstrument, RadarInstrument and ReactorInstrument. The helper rejects traversal/absolute paths and symlink ancestors and deletes only those listed files. Extraction alone cannot remove them. No settings are deleted. Retired empty directories are harmless.
+
+If the plugin is not already enabled, explicitly run `omarchy plugin enable nshkr.tactical-display`. Native enablement can place its widget. Use `omarchy bar put nshkr.tactical-display` for explicit placement or `omarchy bar move nshkr.tactical-display --section right --index 0` to move it. Do not overwrite shell.json with an example configuration.
+
+For rollback, hide the plugin, move the failed plugin directory aside (do not delete the backup), create the original directory and extract your recovery tar there, validate, rescan and restart the shell. This restores the entire saved content rather than leaving added release files behind. Keep any Git metadata/local work separately before moving a development checkout.
+
+## Direct commands and versions
 
 ```bash
-qs log -p "$OMARCHY_PATH/shell" --tail 200
+cd "$HOME/.config/omarchy/plugins/nshkr.tactical-display"
+bash scripts/doctor.sh
+omarchy plugin list
+omarchy-shell shell summon nshkr.tactical-display '{"instrument":"connection"}'
+omarchy-shell shell summon nshkr.tactical-display '{"instrument":"processes"}'
+omarchy-shell shell summon nshkr.tactical-display '{"instrument":"machine"}'
+omarchy-shell shell summon nshkr.tactical-display '{"instrument":"storage"}'
+omarchy-shell shell summon nshkr.tactical-display '{"instrument":"audio"}'
+omarchy-shell shell toggle nshkr.tactical-display '{}'
+omarchy-shell shell hide nshkr.tactical-display
+# While open; returns identity-free metrics, not a raw private snapshot:
+omarchy-shell shell call nshkr.tactical-display diagnostics '{}'
 ```
 
-Capture exact QML/runtime errors before changing code.
-
-## Visual acceptance - the most important gate
-
-The first five seconds matter more than any automated test.
-
-Expected first impression:
-
-1. `NETWORK / LIVE` and `THIS MACHINE ⇄ THE WORLD` establish the idea immediately.
-2. Named local programs are visibly inside the machine boundary.
-3. Remote IP systems are visibly outside.
-4. Lines make ownership/peer relationships obvious without reading a legend.
-5. Direction tracers make outbound vs inbound visually understandable.
-
-Release blocker:
-
-> A first-time viewer says “cool HUD/radar, but what is it showing?”
-
-If that happens, fix hierarchy/layout before adding features.
-
-## Functional acceptance matrix
-
-### A. Existing browser/session traffic
-
-Open Connection Field while Chrome/terminal/agent tools have network activity.
-
-Confirm:
-
-- recognizable user-owned network processes appear where permissions allow;
-- remote systems do not overlap so badly that addresses become meaningless;
-- browser-heavy connection counts aggregate into readable process↔remote links rather than one glyph per socket;
-- clicking Chrome/Codex/etc. isolates its peer set.
-
-### B. Outbound acquisition
+Record `git -C "$OMARCHY_PATH" describe --tags --always`, `git -C "$OMARCHY_PATH" rev-parse HEAD`, `quickshell --version` and `hyprctl version`. The build source review was tag-pinned, not a claim about your installed commit. Check the log destination used by your existing shell launcher; a useful initial journal search is:
 
 ```bash
-curl -I https://example.com
+journalctl --user -b --no-pager | grep -Ei 'tactical|nshkr|quickshell|qml'
 ```
 
-Expected: outbound relationship appears/pulses on the right and may then decay after curl exits.
+This search is only useful when the launcher's output reaches the user journal. If it does not, capture the existing shell launcher's stderr using its normal session mechanism. Do not launch another Quickshell. Keep logs and screenshots in `/tmp` or a private evidence directory **outside the watched plugin tree**.
 
-### C. Listener
+## First target gate: compile/load/keyboard
+
+Run `bash scripts/validate.sh --require-native`; save output. A plugin-local QML error is a FAIL to fix before proceeding. For import-metadata warnings, run the same qmllint on the first-party BarWidget/WidgetButton files and keep both logs; do not whitelist all warnings. Confirm native manifest validation, rescan, enablement and a clean shell restart.
+
+Open Connection Field, acknowledge the first-run picker, then exercise 1-5, all arrow/Tab traversal, hover/click/double-click, Enter, F, X, R, /, Space, D, ?, comma, P and F6. F6 must reach every control by ordinary Tab/Shift-Tab without trapping field navigation. Escape must dismiss Tactical Display immediately from every mode, including sheets, search, filters and focused views. Backspace walks back one UI/focus level; R resets the current view. Close button and shell hide must also dismiss immediately. Normal updates must preserve selection; exiting processes must not transfer selection to a recycled PID.
+
+Freeze, inspect multiple socket pages, continue generating live traffic, and confirm the displayed timestamp/details do not change. Resume must not replay an acquisition storm. While frozen, terminate only the sampler PID reported by diagnostics (never the shell); check bounded helper restart and the explicit unavailable frozen-detail behavior. Repeat malformed payloads such as `'[]'` and unknown instruments; they must not crash or execute anything.
+
+## Hold shortcut
 
 ```bash
-python3 -m http.server 8765
+bash scripts/print-bindings.sh > /tmp/tactical-bindings.lua
+omarchy menu keybindings --print
+# Read the generated block, resolve F10/F11 collisions, then append it ONCE
+# using your editor to ~/.config/hypr/bindings.lua.
+hyprctl reload
 ```
 
-Expected:
+The printed Lua uses Super+F10 toggle and Super+F11 hold. Press starts one guarded invocation; release cancels the matching token even if it arrives first. Test: ordinary press/hold/release; release Super before F11; quick tap during a cold plugin load; repeated hold key events; rapid alternating taps; unrelated F11 releases; Escape while held then release; shell reload between uses. Expected: no stranded overlay, duplicate helper, unrelated hide or swallowed ordinary F11 release. After **compositor/keymap reload during an active hold**, use `omarchy-shell shell hide nshkr.tactical-display` if the compositor lost the Lua callback state; do not claim that a reloaded compositor can reproduce a discarded release callback.
 
-- Python process appears/updates;
-- listener count increases;
-- aperture appears on machine boundary;
-- no fake remote node is created merely because a socket is listening.
+The runtime lock/tombstone tests passed here; physical key delivery under Quattro's exclusive layer is NOT RUN and must be checked here before enabling hold as a daily workflow.
 
-### D. Likely inbound
+## Automatic native lifecycle/soak
 
-From another LAN machine, if policy permits:
+The runner intentionally takes and releases keyboard focus; run it when you are not doing other work.
 
 ```bash
-curl http://TARGET_IP:8765/
+python3 scripts/live-validate.py --run --cycles 50 --soak-seconds 1800 --output /tmp/tactical-native.json
+python3 scripts/audio-integration.py --run
+python3 scripts/profile.py --instrument all --samples 120 --interval 0.75 --output /tmp/tactical-profile.json
 ```
 
-Expected: peer appears on the left and connects to the Python process. The UI may say inbound, but never attack/threat.
+Check exactly one sampler per open, none after hide, successful mode cycling, advancing sequence/freshness, no runaway RSS and no shell crash. Inspect logs for binding/JS/type errors, not just exit codes. The report samples helper/shell CPU ticks/RSS and UI layout counts/timing; it **does not certify** physical keyboard, pointer, hotplug, native screenshots, frame pacing or hot reload. Record those manual gates separately. A short profile is not a 30-minute leak test.
 
-### E. Loopback
+## Controlled real activity
 
-```bash
-curl http://127.0.0.1:8765/
-```
+Use existing browser/development workloads as the main dense case. For repeatable local sockets, in another terminal run `python3 -m http.server 8765 --bind 127.0.0.1`, then `curl http://127.0.0.1:8765/`. A TCP listener aperture, loopback relationship and correct process owner should appear. Stop only that test server and verify bounded close ghosts. Use an IPv6 test supported by the suite; skip only with the actual error recorded.
 
-Expected: localhost relationship stays inside the machine field rather than being placed in the outside world.
+For a true non-loopback inbound case, bind a controlled test server to an approved LAN address and connect from a second device. Do not expose a server to an untrusted network merely for this test. Confirm that the direction is labeled inferred and the local service port is correct. The automated container did not have an appropriate non-loopback address.
 
-### F. Selection
+For process/storage activity, the existing integration tests spawn actual children and write/fsync/remove temporary files. Run `PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p test_providers.py -v`. Observe I/O rates on the process and backing device where supported. A cached/tmpfs operation need not produce block I/O; do not treat that as evidence for invented device traffic. For dense user work, build a project or copy a disposable file on a known local filesystem; no destructive disks, mounts or partition changes.
 
-- click local process -> unrelated topology dims;
-- click remote IP -> unrelated topology dims;
-- detail panel matches selected node;
-- click selected node or empty field -> clears selection;
-- hover highlight is responsive and does not cause shell jank.
+For audio, the dedicated runner creates a silent stream and verifies outgoing routes. In the UI, trace an ordinary playback application through routing to its sink/device, and a recording stream from its source. Test pause/mute/default metadata. Optional action testing requires tdAudioActions=true, confirmation, observed state change and undo, then turn actions off again. Device unplug/restore should yield accurate graph changes; never test with a safety-critical call in progress.
 
-### G. Lifecycle
+## Visual, monitor and reload acceptance matrix
 
-- new relationship pulse is visible but not obnoxious;
-- closed relationships fade/dash instead of popping;
-- Escape closes;
-- `shell hide` closes;
-- repeated summon/hide 20x leaves no stranded layer-shell window;
-- backend process exists only while open.
+Capture each of five modes at quiet/normal/dense, selected, search, degraded, light/dark and reduced-motion states. Cover 1920x1080 and available 2560x1440/4K fractional scaling. Use your normal desktop capture tool; do not substitute the checked-in SVG fixtures. Verify no primary-label overlaps/clipping, no unreadable selected fields, no accidental per-flow rate semantics, no distracting perpetual movement and no visible update hitch. Record whether an unfamiliar reviewer can explain the geometry and answer the instrument questions in VISUAL-DESIGN.md.
 
-### H. Hold binding
+Summon from monitor A and B, then with an explicit `monitor` payload. Other displays must remain unobstructed. Try mixed scales, unplug/replug while closed and open, and restart the shell with multiple monitors. Verify a single helper and no duplicated keyboard focus. Test both horizontal and vertical native bar placement, left-click toggle and right-click picker. Save the previous bar position before changing it and restore that exact value afterwards.
 
-Use `./scripts/print-bindings.sh`. Verify press opens/release closes, then verify toggle fallback. Keep Escape as recovery.
+For hot reload, while open touch only `Overlay.qml` (content unchanged), wait for the host's code reload, and repeat selection/instrument switching. Repeat a real `omarchy-restart-shell` and confirm no orphan helper. Native reload/enable/disable/plugin removal must not leave timers/processes. Record resource trends at equivalent points across at least 50 cycles and the 30-minute run.
 
-### I. Multi-monitor
+## Specific remaining gates and conditional extensions
 
-- no `screen` payload: every output renders;
-- only focused output owns exclusive keyboard focus;
-- no duplicate telemetry backend per output;
-- optional `{"screen":"DP-1"}` targeting still works;
-- graph scales without labels clipping on each output.
+All P0 code paths are implemented; none of the five views is a stub. **Not yet evidenced on an actual desktop:** native QML compilation/import loading, true layer-shell focus/hold behavior, pointer/accessibility traversal, native text/font/high-DPI layout, bar orientation/clicks, monitor hotplug, shell restart/hot reload, rendered frame timing and 30-minute native stability. Those are release blockers for changing rc to a production-certified tag, not items falsely checked complete.
 
-## Layout hardening priorities
+Optional inet_diag integration skipped because this container's kernel returned ENOENT; procfs and binary parser tests passed. Real PipeWire and non-loopback accepted traffic were unavailable. GPU/thermal fields depend on actual target capabilities. Reverse DNS/offline MMDB and wpctl mutation code exist but need explicit opt-in target validation; no resolver or audio mutation was performed here.
 
-The current layout is deterministic/semantic, but real visual QA is still required.
+Workspace/Agent Topology remains conditional after P0 native acceptance, exactly as the supplied plan requires. Implement only with reliable workspace/project identities and sourced agent states, never a heuristic vendor-specific activity label. Stream rerouting is not implemented because the chosen safe wpctl path does not provide a reliable atomic validated route API; a next agent must add a typed PipeWire/WirePlumber route provider with serial-safe tests before exposing it. No persistent replay, terminal-launch/kill/disconnect/mount management, privileged tracing or audio level meter is claimed.
 
-Inspect these first:
+## Signoff and next-agent output
 
-1. **process label collisions** with 10-18 active user processes;
-2. **remote label collisions** with 20-36 active remotes;
-3. line crossing under browser-heavy workloads;
-4. whether inbound/red looks like “malicious” rather than simply direction;
-5. whether top `BIDIRECTIONAL` sector is actually useful or visually confusing;
-6. detail panel covering a selected remote on the right side;
-7. whether 1080p text is too small;
-8. whether 4K/fractional scaling makes geometry too sparse;
-9. layout churn as remotes appear/disappear;
-10. whether localhost deserves a better multi-process representation than one shared loopback peer node.
-
-Do not solve these by adding more HUD chrome. Solve them in topology/layout.
-
-## Backend truth boundaries
-
-### Reliable
-
-- socket existence/state from procfs;
-- local/remote endpoints;
-- current kernel tx/rx queue depth;
-- current-user process attribution when `/proc/<pid>/fd` is readable;
-- machine-wide RX/TX from `/proc/net/dev`;
-- lifecycle timing inside the sampler.
-
-### Heuristic / best effort
-
-- likely inbound vs outbound based on local listener-port correlation;
-- unavailable process ownership becomes unattributed.
-
-### Deliberately not claimed
-
-- packet contents;
-- per-link historical throughput;
-- firewall path/provenance;
-- remote hostname/company/geolocation;
-- attack/threat classification.
-
-If a future iteration wants real per-link byte rates, add a data source that genuinely exposes cumulative per-socket counters and document its privilege/performance implications. Do not infer throughput from animation.
-
-## Privacy hardening
-
-The backend now discards full command arguments and keeps argv0/executable identity only. Verify no future debug UI accidentally exposes raw `/proc/<pid>/cmdline`.
-
-A presentation-redaction mode may be valuable later because IPs/PIDs remain sensitive. Do not add silent DNS/GeoIP as a shortcut to prettier labels.
-
-## Performance hardening
-
-With overlay open:
-
-```bash
-ps -C python3 -o pid,pcpu,rss,args | grep tactical-display
-ps -C quickshell -o pid,pcpu,rss,args
-```
-
-Stress with browser tabs, local dev servers, SSH, and connection churn. Measure at the actual monitor refresh rate. If procfd scanning becomes expensive, first add a short TTL cache for inode→process ownership rather than scraping repeated CLI output every sample.
-
-## Automated gates
-
-```bash
-make test
-make validate
-```
-
-Current build-environment suite contains 24 tests and covers the new network aggregation semantics as well as real procfs socket integration.
-
-On the actual host also run:
-
-```bash
-omarchy plugin validate .
-/usr/lib/qt6/bin/qmllint -I "$OMARCHY_PATH/shell" Overlay.qml core/*.qml instruments/*.qml
-```
-
-Compare known environment warnings against first-party Omarchy QML before labeling them plugin failures.
-
-## Final definition of done
-
-Do not call 0.2 hardened/final until:
-
-1. automated tests pass;
-2. plugin validation passes on current Quattro;
-3. no plugin-specific QML parser/runtime errors remain;
-4. visual thesis is obvious within a few seconds;
-5. browser/SSH/curl/dev-server real workloads produce understandable topology;
-6. process and remote selection work;
-7. new/closed lifecycle works;
-8. hold + toggle + Escape paths work;
-9. multi-monitor behavior is green or support is explicitly narrowed;
-10. measured shell/backend performance is acceptable;
-11. install/restart/disable/re-enable/remove lifecycle is clean;
-12. marketplace media demonstrates the topology itself, not decorative effects.
-
-Until then, status is: **implemented, automated-model-tested, prior Quattro plugin plumbing validated, pending live visual hardening of Connection Field**.
+Update VALIDATION.md and TRACEABILITY.md with exact PASS/FAIL/PARTIAL/NOT RUN, installed commits, commands, logs, real screenshot paths, measurements and reviewer answers. Fix any plugin errors or visual fail criteria; do not merely list them as future polish. Re-run both full suites after fixes. Produce another **incremental overlay against this rc tree**, with explicit deletions, final checksums and pristine reconstruction, and retain the baseline identity for that new overlay. The outer ZIP SHA-256 belongs in the external delivery record; a ZIP cannot contain its own final checksum without a self-reference problem.

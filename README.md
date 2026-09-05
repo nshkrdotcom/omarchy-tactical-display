@@ -1,184 +1,85 @@
-# Tactical Display for Omarchy Quattro
+# Tactical Display
 
-Tactical Display is an Omarchy Quattro `overlay` plugin built around one interaction: summon a temporary instrument, understand something about the machine immediately, then dismiss it and leave no permanent dashboard behind.
+**Five local instruments over your desktop. Summon, inspect, dismiss.**
 
-Version **0.2.0** replaces the original decorative Network Radar/System Reactor prototypes with a single focused instrument: **Connection Field**.
+Version **1.0.0-rc.1**, targeting **Omarchy Quattro 4.0.1**. The runtime implementation is present for all five required instruments. This is a release candidate awaiting the real-desktop acceptance gates, not a claim that a headless test environment certified the desktop. See [validation](docs/VALIDATION.md) for executed evidence and [handoff](docs/HANDOFF.md) for the exact remaining gates.
 
-> **See every program on this machine communicating with every remote system in real time.**
+| Instrument | What the geometry reveals |
+|---|---|
+| Connection Field | Local applications on a near plane, remote systems on a horizon, listeners at the machine boundary; real aggregated relationships and recent changes. |
+| Process Topology | Application/cgroup islands, process-instance ancestry, and CPU, memory, thread, network or I/O emphasis. |
+| Machine Anatomy | Resource cutaways, pressure and measured contributors; no simulated hardware bus. |
+| Storage / I/O Flow | Process accounting, open-descriptor associations, mounts, logical layers and backing block devices. |
+| Audio Routing | Actual PipeWire streams, channel links, routing nodes, sinks/sources and physical devices. |
 
-## What the display means
+## Install or apply the overlay
 
-The geometry is the data model:
+This delivery is an **incremental overlay against the supplied 0.2.0 Repomix**, not a standalone checkout. Follow [the guarded apply procedure](docs/HANDOFF.md#apply-the-overlay) before running anything. It verifies the baseline, backs it up, applies only the changes, and removes the six explicitly retired QML files.
 
-- **center / machine boundary** - this computer;
-- **process hubs inside the boundary** - local processes that own visible sockets;
-- **remote diamonds at the perimeter** - remote IP systems;
-- **right sector** - primarily outbound relationships;
-- **left sector** - likely inbound relationships;
-- **top sector** - systems with meaningful traffic in both directions at the relationship level;
-- **inner loopback node** - localhost relationships;
-- **lines** - real process-to-remote socket relationships;
-- **moving tracers** - relationship direction, **not measured per-link bandwidth**;
-- **line thickness** - socket multiplicity plus any current kernel queue pressure;
-- **pulses** - newly observed relationships;
-- **dashed/fading links** - recently closed relationships;
-- **apertures on the machine boundary** - listening/bound sockets.
+For a complete, already-overlaid development checkout, `bash scripts/install-local.sh` is a create-only installer into `~/.config/omarchy/plugins/nshkr.tactical-display`. It refuses an existing installation and does not enable anything or edit the bar. The ordinary Omarchy plugin distribution path needs no install hook, privileged daemon, package download or build step.
 
-Click a process or remote system to isolate the relationships attached to it and inspect PID, executable identity, protocol, service port, socket count, and peer relationships.
-
-## Quattro-native
-
-This repository targets current Omarchy **Quattro / 4.x** and follows the Quattro shell contract:
-
-- one long-running `omarchy-shell` Quickshell process;
-- third-party plugin root at `~/.config/omarchy/plugins/<id>/`;
-- `kinds: ["overlay"]` and `entryPoints.overlay`;
-- an `Item` entry point, never another `ShellRoot`;
-- shell-injected `omarchyPath`, `shell`, `manifest`, and `pluginRegistry` properties;
-- `open(payloadJson)` / `close()` lifecycle;
-- `omarchy-shell shell summon|hide|toggle` for IPC.
-
-Primary references:
-
-- https://plugins.omarchy.org/develop.html
-- https://github.com/basecamp/omarchy/blob/quattro/agents/skills/shell-dev.md
-- https://github.com/basecamp/omarchy/blob/quattro/manual/32-shell-plugins.md
-
-## Requirements
-
-Runtime requirements are deliberately small:
-
-- Omarchy Quattro / 4.x
-- Quickshell/Hyprland supplied by Omarchy
-- `python3`
-- ordinary Linux procfs
-
-There are no Python packages, daemons, web APIs, DNS lookups, GeoIP databases, packet-capture helpers, root helpers, bundled fonts, or binary dependencies.
-
-## Install / update during development
-
-For the original full repository:
+Runtime requirements: the Quattro 4.0.1 host/Qt Quick stack and Python 3 (3.10+ language features). PipeWire's `pw-dump` enables the audio graph; WirePlumber's `wpctl` enables explicitly opted-in actions. Missing optional tools produce capability explanations, not fabricated data. Node.js is **development-only** for model/layout tests. No pip install is required for normal runtime.
 
 ```bash
-./scripts/validate.sh
-./scripts/install-local.sh
-```
-
-For the **0.2 overlay archive**, unzip it directly over the existing repository or installed development copy. The old `RadarInstrument.qml` and `ReactorInstrument.qml` files may remain on disk; `Overlay.qml` no longer references or loads them.
-
-Then validate and restart the shell:
-
-```bash
-omarchy plugin validate .
-omarchy-restart-shell
-```
-
-## Summon it
-
-```bash
-omarchy-shell shell summon nshkr.tactical-display '{}'
-```
-
-Dismiss:
-
-```bash
+omarchy plugin validate ~/.config/omarchy/plugins/nshkr.tactical-display
+omarchy-shell shell rescanPlugins
+omarchy plugin enable nshkr.tactical-display
+omarchy-shell shell summon nshkr.tactical-display '{"instrument":"connection"}'
 omarchy-shell shell hide nshkr.tactical-display
+omarchy-shell shell toggle nshkr.tactical-display '{}'
 ```
 
-Legacy payloads such as `{"instrument":"radar"}` still summon Connection Field so old development keybindings do not break.
-
-## Suggested hold binding
-
-Run:
+Omarchy's own enablement can place a bar widget. The plugin does not rearrange your bar. To explicitly place or move it using the native tooling:
 
 ```bash
-./scripts/print-bindings.sh
+omarchy bar put nshkr.tactical-display
+omarchy bar move nshkr.tactical-display --section right --index 0
 ```
 
-It prints the current Quattro Lua binding pattern:
+Left-click toggles on the focused monitor; right-click opens the instrument picker. Vertical bars always use the compact `TD` affordance. Idle bar state is the remembered instrument, not a pretend live activity indicator. There is **one shared helper per open session**, not one per monitor.
 
-```lua
-o.bind("SUPER + N", "Tactical Display: Connection Field", "omarchy-shell shell summon nshkr.tactical-display '{}'")
-o.bind("SUPER + N", nil, "omarchy-shell shell hide nshkr.tactical-display", { release = true })
-```
+## Interaction
 
-Check `omarchy menu keybindings --print` first and use an unused chord. A toggle alternative is printed as well because release ordering can vary by Hyprland workflow.
+| Key / gesture | Effect |
+|---|---|
+| `1` - `5`; `I` | Select instrument; reopen picker. |
+| Pointer hover/click; arrows; Tab / Shift-Tab | Inspect/select; traverse entities, including density-budget omissions. |
+| Enter / double-click; `F`; `X` | Focus; isolate/unisolate; expand/collapse an application. |
+| Escape; Backspace; `R` | Close Tactical Display immediately; back one UI/focus level; reset the current view. |
+| `/`; Space; `D` | Search; freeze/resume an exact snapshot; expand detail and paged socket records. |
+| `?` / `H`; comma; `P`; `C` | Legend; settings; privacy; copy the curated selected detail. |
+| `F6` | Switch between field traversal and normal Qt control traversal. |
+| Connection `V` / `N` / `B`, `L` / `O` | Origin, protocol, lifecycle lenses; listeners / loopback. |
+| Process `E`; Storage/Audio `V`; Machine `T` | Resource emphasis; topology lens; bounded aggregate trend. |
 
-## Controls
+Selection uses stable instance IDs. Unknown/missing data remains unknown. A selected departed entity keeps its inspection record rather than selecting a recycled PID. Freeze holds the helper's exact full snapshot, including later paged details; live collection continues, bounded, in the background. Switching instruments resumes live state. Search and detail remain usable while frozen.
 
-- **left click process** - isolate that process and inspect its remote relationships;
-- **left click remote system** - isolate that system and inspect local processes talking to it;
-- **click empty field / selected node again** - clear selection;
-- **H / ?** - semantic help overlay;
-- **Esc** - close.
+For hold-to-view, `bash scripts/print-bindings.sh` prints a **reviewable Lua block** for Quattro's `~/.config/hypr/bindings.lua`. It does not install bindings. The helper serializes press/release IPC, handles release-before-press races and ignores unrelated key releases. See the full hold acceptance procedure in [handoff](docs/HANDOFF.md).
 
-No right-click handler is used.
+## Truth and privacy
 
-## Telemetry model
+Connection origin is **inferred** from visible listeners/bindings, not proof of who called `connect()`. The default works through unprivileged procfs; optional `inet_diag` exposes TCP counters only where the kernel supplies them. ACKed/received byte deltas are goodput, not wire bandwidth. Line width encodes socket multiplicity, not an invented rate. Listener backlog is not labeled as bytes.
 
-`scripts/telemetry.py` reads:
+Storage process rates and device rates are separately measured. Dashed process-to-mount edges mean **open descriptors**, never a per-mount share of a process's bytes. RSS can count shared pages more than once. Audio gain is not a level meter. Every detail surface names its provenance.
 
-- `/proc/net/tcp`, `tcp6`, `udp`, `udp6` for socket state/endpoints/queues;
-- readable `/proc/<pid>/fd` to attribute sockets to the current user's processes;
-- `/proc/<pid>/comm`, executable basename, and `argv[0]` only for process identity;
-- `/proc/net/dev` for machine-wide RX/TX rate;
-- existing system telemetry sources retained from v0.1 for compatibility.
+No root, sudo, packet capture, cloud endpoint intelligence, analytics, command-line argument ingestion, or persistent traffic history. Local aliases and `/etc/hosts` work offline. Reverse DNS is opt-in and can contact your configured resolver; privacy mode suppresses it. User-supplied offline MMDB enrichment is optional. Screen-share privacy hides identifiers and the desktop, but **is not a security boundary**.
 
-The backend emits both raw `contacts` and an aggregated `network` model containing `processes`, `remotes`, `links`, `listeners`, and a `summary`.
-
-The visualization intentionally aggregates many ephemeral sockets between the same process and remote service into one relationship. That lets the user see **who is talking to whom** instead of drowning in kernel objects.
-
-## Important truth boundaries
-
-- **Inbound is inferred**, not firewall proof. A connection is classed as likely inbound when its local port matches a currently visible listener.
-- **Per-link motion is directional**, not a bandwidth meter. Plain procfs does not expose a clean cumulative byte counter for every arbitrary socket, so the plugin does not invent one.
-- **Global RX/TX is real machine-wide throughput** from `/proc/net/dev`.
-- **Queue pressure is real current kernel queue state**, not historical throughput.
-- **Remote identity is the IP address only**. The plugin performs no DNS or GeoIP lookup.
-- Process attribution is best-effort and respects Linux permissions; inaccessible sockets appear as unattributed rather than triggering privilege escalation.
-
-## Privacy / security
-
-Tactical Display makes no network requests and writes no telemetry history. It does not use `sudo`, packet capture, raw sockets, firewall mutation, or process killing.
-
-Remote IPs, local process names/PIDs, listener ports, and executable identities can be sensitive on screen. Full process argument lists are deliberately **not** displayed because they may contain secrets. See `docs/SECURITY-PRIVACY.md`.
-
-## Development / validation
+## Development and evidence
 
 ```bash
 make test
-make validate
-./scripts/doctor.sh
+bash scripts/validate.sh
+bash scripts/doctor.sh
+node scripts/render-fixtures.js --out /tmp/tactical-fixtures
+python3 scripts/profile.py --instrument all --samples 40 --interval 0.75 --output /tmp/tactical-profile.json
 ```
 
-`make validate` runs automated tests, shell syntax checks, a real live telemetry sample, `omarchy plugin validate` when available, and `qmllint` when a usable Omarchy QML import tree is available.
+`validate.sh --require-native` returns nonzero when native validation cannot run. Unavailable integration tests are explicit skips, not passes. Fixture previews execute the production layout/drawing code but **are not Qt/Wayland screenshots**. Never present them as live telemetry or desktop validation.
 
-The build environment cannot visually render the final Quattro overlay. The real-host visual/hardening matrix is therefore explicit in `docs/HANDOFF.md` rather than falsely marked complete.
+The live runner requires an explicit `--run`, an actual Omarchy session, and an evidence path outside the watched plugin directory. It never launches a replacement shell or substitutes a fixture backend.
 
-## Repository map
+## Documentation
 
-```text
-.
-├── manifest.json
-├── Overlay.qml
-├── core/
-│   ├── HudSurface.qml
-│   ├── Scanlines.qml
-│   └── Telemetry.qml
-├── instruments/
-│   ├── NetworkFieldInstrument.qml   # v0.2 primary instrument
-│   ├── RadarInstrument.qml          # legacy, no longer loaded
-│   └── ReactorInstrument.qml        # legacy, no longer loaded
-├── scripts/
-│   ├── telemetry.py
-│   ├── doctor.sh
-│   ├── install-local.sh
-│   ├── print-bindings.sh
-│   └── validate.sh
-├── tests/
-└── docs/
-```
+[Architecture](docs/ARCHITECTURE.md) · [data semantics](docs/DATA-MODEL.md) · [configuration](docs/CONFIGURATION.md) · [security/privacy](docs/SECURITY-PRIVACY.md) · [visual system](docs/VISUAL-DESIGN.md) · [tests](docs/TESTING.md) · [Quattro contract](docs/UPSTREAM-CONTRACT.md) · [traceability](docs/TRACEABILITY.md) · [validation](docs/VALIDATION.md) · [operator handoff](docs/HANDOFF.md).
 
-## Status
-
-`0.2.0` is the first product-shaped version: one clear network question, one spatial model, truthful semantics, real Linux socket integration, Quattro lifecycle integration, selection/inspection, and automated backend/model tests. Final visual acceptance still belongs on the actual Omarchy workstation.
+The supplied requirements remain available under `docs/specification/`. Workspace/Agent Topology, persistent replay, privileged tracing and stream rerouting are not disguised as completed features; their conditional extension gates are documented in the handoff.

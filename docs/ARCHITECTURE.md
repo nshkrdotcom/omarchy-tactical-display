@@ -1,122 +1,52 @@
-# Architecture
+# Architecture and implementation decisions
 
-## Product boundary
-
-Tactical Display 0.2 is one Quattro `overlay` plugin with one focused instrument: Connection Field.
+## Boundaries
 
 ```text
-Hyprland keybind
-    |
-    v
-omarchy-shell shell summon nshkr.tactical-display '{}'
-    |
-    v
-Omarchy Quattro plugin loader
-    |
-    v
-Overlay.qml
-    |-- Telemetry.qml ----> python3 scripts/telemetry.py
-    |                           |-- /proc/net/{tcp,tcp6,udp,udp6}
-    |                           |-- /proc/<pid>/{fd,comm,exe,cmdline(argv0 only)}
-    |                           |-- /proc/net/dev
-    |                           `-- /proc/{net/dev,uptime}
-    |
-    `-- Variants(Quickshell.screens)
-         `-- PanelWindow per screen
-              `-- HudSurface
-                   `-- NetworkFieldInstrument
+Quattro shell (one existing long-running Quickshell)
+  |-- BarWidget.qml -> native bar styling/lifecycle; no sampler
+  `-- Overlay.qml (hosted Item, open/close, selected monitor)
+        |-- Configuration (native inline settings, unknown-field-preserving)
+        |-- NavigationController (selection/context/history/freeze)
+        |-- Telemetry (one supervised Process, NDJSON validation)
+        |     `-- scripts/telemetry.py
+        |           `-- td_telemetry/{processes,network,machine,storage,audio,hardware,enrichment}
+        |                 -> normalized entities + capability map + bounded events
+        `-- selected PanelWindow / TacticalDisplayShell
+              -> InstrumentModel -> Layout -> Draw / Field
+              -> InspectionPanel, CommandSheet, Trend
 ```
 
-There is one telemetry process shared by all monitor surfaces.
+`model/` separates configuration, typed navigation intent, telemetry validation, instrument transformations and inspection. `visual/` owns stable layout, collision/label budgets, palette contrast and rendering. No instrument delegate reads Linux files or spawns commands. One shared renderer has **five distinct semantic model/layout/drawing paths**, not five labels over a generic percentage dashboard.
 
-## Runtime lifecycle
+## Changes to the supplied plan
 
-### Open
+**Use the actual native settings API.** Tagged Quattro exposes `shell.updateEntryInline`; the release merges existing inline entry keys before calling it because the host replaces that entry's fields. A second private configuration file would create conflicting authorities. Newer settings versions are read-only. A missing enablement entry yields explicit session-only behavior.
 
-1. Quattro loads `Overlay.qml` on summon.
-2. Shell-injected plugin properties identify the source directory.
-3. `open(payloadJson)` records optional screen/help state.
-4. `Telemetry.start()` launches one persistent Python sampler.
-5. Per-screen layer-shell windows become visible.
-6. The focused Hyprland monitor requests keyboard focus.
+**Aggregate first, expand deliberately.** Default/focused Connection Field retains application relationships; `X` reveals individual process instances. Following a shared remote must not accidentally select every unrelated application. Process Topology unfolds small trees immediately and collapses large application populations until selected/searched. Audio focus follows directed paths all the way from the selected sink to its upstream streams, without traversing sideways across unrelated routes.
 
-### Close
+**Retain the proven fallback, add measured kernel capability.** The baseline procfs endian/parser behavior remains covered by its original tests. inet_diag is optional, deadline/length checked, and retried conservatively; procfs still supplies UDP and fallback socket state. The former inode/PID-only ownership and generic-runtime grouping were replaced, not perpetuated.
 
-1. release binding, Escape, or `shell hide` calls the plugin close route;
-2. surfaces become invisible;
-3. backend process is stopped;
-4. no telemetry history is written.
+**Do not fabricate storage attribution.** fdinfo `mnt_id` exposes a structural open-descriptor association only. Process and device rates retain their separate denominators. Capacity is queried in a timed, killable child for an allowlist of local filesystem types; remote/FUSE capacity is unavailable rather than risking an uninterruptible synchronous call in the shell.
 
-## Backend layers
+**Freeze the data that details will inspect.** A helper-side full snapshot is independently retained, correlated by request ID. QML receives the bounded transport snapshot. Later child-socket pages come from that exact frozen full snapshot. A restarted helper reports the frozen data ended/unavailable and never silently substitutes new live details.
 
-### Raw contacts
+**Lifecycle before decoration.** The manifest does not set `keepLoaded`; Quattro unloads the overlay. Close drops UI/history and stops the helper immediately. Linux parent-death signals and command timeouts bound helper/provider teardown. Native hold invocation uses runtime-directory locking and release tombstones to prevent asynchronous press/release reordering. No free-running visual heartbeat is needed to make an idle system appear busy.
 
-`SocketSampler` parses procfs socket tables and emits a best-effort process-attributed contact for each visible socket. It retains recently closed contacts as short-lived ghosts so topology can decay instead of popping.
+## Lifecycle and monitors
 
-### Human network model
+The summon screen is captured from the payload or focused Hyprland monitor; otherwise the first current screen is used. Only that PanelWindow is visible and keyboard-exclusive. Other monitors remain unobstructed. On hot-unplug, select the current focused/first remaining screen; with no screens, hide the session. Backend ownership sits above Variants, so changing screens cannot multiply samplers. The host's openPanelIds guards a stale queued cold-summon payload after a hide.
 
-`build_network_model()` aggregates raw sockets into the objects the visualization actually needs:
+Process restart is capped at six retries with exponential backoff up to 30 seconds; three good frames reset the consecutive-failure count. Freshness uses an active-only clock. Transport validation rejects malformed/deep/oversized objects before they reach rendering. Open normal state never needs a new Quickshell or external graphics engine.
 
-```text
-processes[]   local socket owners
-remotes[]     remote IP systems
-links[]       process <-> remote-service relationships
-listeners[]   local listening/bound endpoints
-summary{}     active counts
-```
+## Context and UI state
 
-A `link` groups sockets by:
+The context carries process instance, application, remote, mount, device, audio and subsystem keys, never only a recyclable PID. Missing destination context produces a notice and retains the available view. Focus history is capped at 24. Selection survives replacement snapshots; a departed selected record remains inspectable until reset/back/close. Freeze is not persisted. Preferences and last instrument use native inline settings; raw history does not.
 
-```text
-process + remote IP + relationship kind + protocol + service port
-```
+Application identity prefers meaningful application/cgroup data, then canonical executable identity and ownership, with runtime ancestry/instance disambiguation for generic interpreters. Network groups and process groups use the same IDs. Audio process metadata is client-reported and is explicitly not a security identity.
 
-For outbound relationships the service port is the remote port. For likely inbound relationships it is the local listening service port. This prevents browser connection churn from becoming hundreds of unrelated dots while retaining socket multiplicity on the relationship.
+## Limits and deliberate extensions
 
-## Process attribution
+All source paths exist; no rendering fixture or dummy provider is a production fallback. Optional stream rerouting requires an API with safely validated route/serial semantics; it is not implemented by guessing wpctl commands. Workspace/Agent Topology remains gated behind P0 target acceptance, as required by the supplied plan. There is no persistent replay database, privileged eBPF, traffic capture, process killer, mount manager or cloud service.
 
-Socket inode → process ownership is resolved only through readable `/proc/<pid>/fd` symlinks for the current user. The backend also reads:
-
-- `comm`;
-- executable basename;
-- `argv[0]` only.
-
-Full argument lists are deliberately discarded for privacy.
-
-If ownership cannot be read, the relationship remains visible as unattributed.
-
-## Direction inference
-
-- `listen` - LISTEN/BOUND or unspecified remote;
-- `loopback` - remote address is loopback;
-- `inbound` - local port currently corresponds to a visible listener;
-- otherwise `outbound`.
-
-This is a useful topology heuristic, not firewall provenance or IDS classification.
-
-## Rendering model
-
-`NetworkFieldInstrument.qml` uses a single procedural Canvas for topology plus QML text/detail overlays.
-
-Layout:
-
-- local processes orbit inside the machine boundary;
-- outbound remotes occupy the right sector;
-- inbound remotes occupy the left sector;
-- mixed remotes occupy a top sector;
-- loopback remains inside the machine field;
-- links connect process/remote coordinates directly.
-
-Selection does not recompute backend data. It changes render emphasis only.
-
-## Truthful motion
-
-Active links carry continuously moving direction tracers. They communicate *which way the relationship points*, not bytes/sec. Machine-wide RX/TX is shown separately from `/proc/net/dev` because that metric is actually measured.
-
-Kernel socket queue depth may affect link thickness as current pressure, but it is not called throughput.
-
-## Performance
-
-Backend cadence remains 750 ms by default. The Python process persists while the overlay is open rather than being recreated every sample. Canvas repaint is driven by the direction animation plus telemetry/layout changes.
-
-Hardening must measure both backend and `omarchy-shell` CPU on the actual host, especially with many browser connections and high-refresh monitors.
+See DATA-MODEL.md for field semantics and limits, UPSTREAM-CONTRACT.md for the runtime evidence, and TRACEABILITY.md for file/test mappings.

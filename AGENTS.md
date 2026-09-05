@@ -1,140 +1,16 @@
-# AGENTS.md - Tactical Display
+# Tactical Display implementation rules
 
-## Mission
+Read README.md, docs/HANDOFF.md, docs/VALIDATION.md and docs/TRACEABILITY.md before changing this code. The supplied authoritative spec is preserved in docs/specification/. Target runtime contract: tagged Omarchy v4.0.1; verify installed source before upgrading it.
 
-This repository is an Omarchy Quattro overlay plugin. Preserve the product principle:
+1. Keep one hosted Item overlay and one lightweight native bar widget. No ShellRoot, second Quickshell, privileged daemon, hidden install hook or backend while closed.
+2. Production input comes from td_telemetry providers. Fixtures are test-only. Never advertise inferred origin, FD-to-mount associations, RSS sums or audio gain as stronger measurements than they are.
+3. Keep PID+start-tick identities, per-provider capability/freshness, monotonic deltas, incomplete-snapshot suppression, bounded protocol/history/layout work and independent frozen inspection.
+4. Add a failing behavior test for a regression, implement the real path, run Python plus Node tests. Static QML contract tests are not runtime acceptance. Use actual Quattro/qmllint and screenshot review on the target.
+5. Preserve unknown native inline settings. Do not replace shell.json behind the host. Default DNS/actions off; no full argv or environment capture.
+6. Put logs, profiles and screenshots OUTSIDE the watched plugin tree during target testing. Keep private runtime observations out of release fixtures/evidence.
+7. Leave source, tests, docs and manifests consistent. Never mark NOT RUN as PASS. Do not call visual/native acceptance complete without the target evidence.
+8. Delivery is an overlay against the exact supplied baseline: only changed/new paths; explicit OVERLAY_DELETE.txt; checksum verification and pristine reconstruction. Do not include caches, credentials, font binaries or whole baseline archives.
 
-> **The screen becomes an instrument while summoned; on dismiss, the instrument ceases to exist.**
+Architecture boundaries: td_telemetry -> schema-3 NDJSON -> Protocol.js -> InstrumentModel/Navigation -> Layout/Draw -> QML field and shared shell. Pure JS is shared verbatim with Node tests. Public helper commands are an allowlist, not arbitrary shell execution. Runtime dependency policy is stdlib-first; Node is test-only.
 
-Version 0.2 has one product thesis:
-
-> **See every program on this machine communicating with every remote system in real time.**
-
-Do not regress this into a generic neon dashboard, permanent panel, security scanner, or second Quickshell process.
-
-## Target contract
-
-Target current Omarchy Quattro / 4.x. Before changing shell integration, re-read current upstream:
-
-- `agents/skills/shell-dev.md`
-- `manual/32-shell-plugins.md`
-- `shell/README.md`
-- `shell/shell.qml`
-- `shell/services/PluginRegistry.qml`
-
-Repository: https://github.com/basecamp/omarchy/tree/quattro
-
-The entry point must remain an `Item`, not `ShellRoot`. Do not launch another `quickshell` process. `open(payloadJson)` and `close()` are mandatory.
-
-## Current architecture
-
-- `Overlay.qml` - Quattro lifecycle, shared telemetry, per-screen overlay windows.
-- `core/Telemetry.qml` - one backend process while open.
-- `scripts/telemetry.py` - dependency-free procfs collector and process↔remote aggregation model.
-- `core/HudSurface.qml` - intentionally restrained shared instrument surface.
-- `instruments/NetworkFieldInstrument.qml` - only primary v0.2 instrument.
-- `RadarInstrument.qml` / `ReactorInstrument.qml` - retired prototypes retained only because an overlay zip cannot delete files from an existing checkout. They are not loaded.
-
-Do not duplicate telemetry processes per monitor.
-
-## Semantic law
-
-The visualization must remain truthful:
-
-- center/machine boundary = local machine;
-- process hubs = socket-owning local processes;
-- remote perimeter nodes = remote IP systems;
-- links = real socket relationships;
-- right sector = primarily outbound;
-- left sector = likely inbound;
-- top = mixed/bidirectional relationship set;
-- loopback remains inside the machine field;
-- listener apertures = bound/listening sockets;
-- pulse/fade = lifecycle;
-- moving tracer = **direction only**;
-- line width = socket multiplicity + kernel queue pressure.
-
-Never represent tracer speed/brightness as measured per-link throughput unless a future backend genuinely measures it.
-
-## Backend model
-
-The JSON frame has:
-
-```text
-system      existing machine-wide metrics
-contacts    raw visible socket contacts
-network
-  processes
-  remotes
-  links
-  listeners
-  summary
-```
-
-Primary visual aggregation is process↔remote-service relationship, not one glyph per kernel socket. Preserve raw `contacts` for debugging and future drill-down.
-
-## Process privacy
-
-Do not expose full process argument lists by default. `/proc/<pid>/cmdline` can contain tokens, passwords, signed URLs, or other secrets. Current code keeps process `comm`, PID, executable basename, and `argv[0]` only.
-
-## Safety / privacy constraints
-
-- no `sudo`, setuid helper, packet capture, raw socket sniffing, or firewall mutation without an explicit new product decision;
-- no outbound web calls, reverse DNS, or GeoIP as a hidden default;
-- no process/socket killing from a click;
-- no persistent telemetry history;
-- no claim that inferred inbound traffic is an attack or proves firewall traversal.
-
-## Quickshell / Qt constraints
-
-Keep the per-screen `Variants` `PanelWindow` geometry using anchors. Do not regress to direct `width: parent.width` / `height: parent.height` on the per-screen window path without verifying the Qt/Quickshell issue is fixed on the target stack.
-
-Avoid right-click MouseAreas on layer-shell surfaces until the known synthesized context-menu crash path is verified fixed. Connection Field uses left-click only.
-
-## Visual standard
-
-A screenshot must explain itself without a paragraph:
-
-1. **THIS MACHINE ⇄ THE WORLD** is obvious.
-2. Local programs are visibly different from remote systems.
-3. The line itself communicates who is connected to whom.
-4. Direction is visible.
-5. Clicking either side isolates the relationship graph.
-6. Decorative chrome never competes with the topology.
-
-If the next agent is tempted to add more rings, HUD boxes, random sweeps, or unrelated animation, stop and justify what data each element encodes.
-
-## Tests
-
-After every change:
-
-```bash
-make test
-make validate
-```
-
-On a real Quattro host:
-
-```bash
-./scripts/doctor.sh
-omarchy plugin validate .
-/usr/lib/qt6/bin/qmllint -I "$OMARCHY_PATH/shell" Overlay.qml core/*.qml instruments/*.qml
-```
-
-`qmllint` currently emits some warnings even on Omarchy's own Quattro QML when run outside the full Quickshell metadata environment. Treat parser/type errors as blockers; compare import/Quickshell metadata warnings against an official shell file before attributing them to this plugin.
-
-Then run `docs/HANDOFF.md` exactly.
-
-## Hardening priorities
-
-1. visual layout/collision behavior on the user's real monitor;
-2. QML runtime errors on the exact Quattro/Qt/Quickshell build;
-3. process attribution quality for browser/terminal/agent workloads;
-4. graph behavior under high connection churn;
-5. multi-monitor focus and surface teardown;
-6. CPU/GPU cost while the overlay is open;
-7. final naming/marketplace media only after the instrument is visually convincing.
-
-## Handoff discipline
-
-If you stop before final acceptance, update `docs/HANDOFF.md` with exact host versions, failing action, exact logs, screenshots/observations, and which acceptance cases passed. Never leave only “needs testing.”
+Commands: `make test`, `bash scripts/validate.sh --require-native`, `python3 scripts/live-validate.py --run --cycles 50 --soak-seconds 1800 --output /tmp/tactical-native.json`. The latter takes/relinquishes overlay keyboard focus; run only with operator consent. All optional gates and known limitations are explicit in the handoff.

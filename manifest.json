@@ -2,14 +2,27 @@
   "schemaVersion": 1,
   "id": "nshkr.tactical-display",
   "name": "Tactical Display",
-  "version": "0.2.0",
-  "author": "NSHKR",
+  "version": "1.0.0-rc.1",
+  "author": "nshkrdotcom",
   "license": "MIT",
-  "description": "Ephemeral fullscreen network connection field for Omarchy Quattro: see local processes communicating with remote systems in real time.",
+  "description": "Local, ephemeral system instrumentation: connections, process topology, machine anatomy, storage I/O, and PipeWire routing.",
   "kinds": [
-    "overlay"
+    "overlay",
+    "bar-widget"
   ],
   "entryPoints": {
-    "overlay": "Overlay.qml"
+    "overlay": "Overlay.qml",
+    "barWidget": "BarWidget.qml"
+  },
+  "barWidget": {
+    "displayName": "Tactical Display",
+    "description": "Summon local system instruments on the focused display",
+    "category": "System",
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "tdVersion": 1,
+      "tdBarMode": "icon"
+    }
   }
 }

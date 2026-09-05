@@ -1,89 +1,31 @@
-# Visual Design Law
+# Visual system and review evidence
 
-## Product question
+## Semantic composition
 
-Connection Field exists to answer one question faster than `ss`, `lsof`, or a dashboard:
+All modes share the identity/status rail, field, contextual detail plane and motion vocabulary. Most of the surface remains the field; there is no permanent dashboard grid. Selecting reserves side detail space on wide viewports and a bounded bottom region on narrow ones. Labels remain screen-space text rather than perspective-warped glyphs.
 
-> **What programs on this machine are talking to what systems right now?**
+Connection Field uses a shallow local disc, near-plane application groups, a curved remote horizon and boundary apertures. Loopback stays inside the domain. Process Topology uses group islands and real parent branches; small populations expand immediately, large populations expose their members on demand. Machine Anatomy uses resource cutaways and measured contributor edges. Storage uses stacked process/mount/logical/block planes. Audio is a directed signal board whose focus can trace an entire measured route, not only one neighbor.
 
-If a visual element does not improve that answer, remove it.
+Shapes reinforce meaning: application stack, process square, remote diamond, listener aperture, mount plane, block-device solid, audio stream triangle, endpoint circle, default double-outline and muted cross. Closed relationships are dashed/ghosted; changed/new entities receive finite static/transition emphasis. Measured read/write notches have opposite orientation. A direction marker represents inferred origin or an observed signal route, not unmeasured bandwidth. There is no scanline, particle swarm, perpetual camera motion or meaningless blinking.
 
-## Spatial semantics
+## Layout and motion
 
-The field is not decorative radar.
+Semantic anchors use stable hashes/group identity and viewport-aware zones. A bounded spatial-grid collision pass places nodes at model-change frequency, never per animation frame. A second pass measures labels, budgets their count and reserves selected text. Layout caches are scoped by instrument, zone and focus context. Selected/related entities displace lower-priority labels rather than shrinking all text. Density omissions are counted and remain reachable through full-model search/traversal.
 
-- **center** - conceptual identity of this machine;
-- **machine boundary** - separation between local ownership and outside peers;
-- **process hubs inside boundary** - local socket owners;
-- **remote diamonds near perimeter** - remote IP systems;
-- **right side** - predominantly outbound remote relationships;
-- **left side** - predominantly likely-inbound remote relationships;
-- **top sector** - remotes participating meaningfully in both directions;
-- **inner loopback point** - local host peer identity;
-- **listener apertures on boundary** - local ports waiting/bound for work.
+Normal/vivid modes have finite acquisition and mode-change transitions; reduced motion removes transitions. Geometry is not recomputed by an animation timer. A single Canvas paints only when model/layout/theme state changes; ordinary QML objects provide text and hit targets. Contrast-normalized palette roles derive from the active Omarchy colors. Opaque text planes preserve contrast despite the dimmed desktop. Minimum field text is 16 logical pixels and metadata 13, with larger native theme settings honored.
 
-Position therefore answers *what side of the relationship is this?* and *what direction class does it belong to?*
+## Executed review (headless, not native)
 
-## Link semantics
+`node scripts/render-fixtures.js --out /tmp/tactical-fixtures` executes the **same production Model/Layout/Draw/Palette/Inspection code**, with a test-only SVG Canvas adapter and approximate text metrics/chrome. Every image is visibly marked **TEST FIXTURE / NOT A QUATTRO CAPTURE**. It never feeds fixtures to the production helper or Quattro overlay.
 
-A line exists only because the backend observed one or more real sockets between that process and remote service.
+The generator creates 50 combinations across all five modes: quiet, normal, dense, selected, search, light, privacy, reduced motion, low-space 1280x720 and high-space 2560x1440. Node tests additionally check geometry/label bounds and pairwise non-overlap at four field/font sizes, deterministic refresh positions, selected-label reservation and bounded stress complexity. The acceptance matrix is **not** a claim that all Qt/Wayland screenshots were captured.
 
-- line direction tracer = outbound/inbound/local relationship direction;
-- line thickness = socket multiplicity plus current kernel queue pressure;
-- bright acquisition pulse = newly observed relationship;
-- dashed/fading link = recently closed relationship;
-- selection = unrelated topology dims, attached relationships stay bright.
+Representative rendered images were inspected for every instrument, plus dense Connection focus, light Audio focus and low-space Storage. Iteration fixed: process ancestry hidden in small trees; storage rate labels disappearing too early; local annotation/label collision; excessive focus expansion; transitive shared-remote selection leaking to unrelated apps; Audio sink focus failing to reveal upstream applications; Machine focus showing the wrong contributor metric; and insufficient minimum typography.
 
-**Tracer speed is not throughput.** Do not imply otherwise.
+The checked-in `docs/evidence/*-preview.svg` files are representative shared-renderer evidence only. Native antialiasing/font measurement, controls, compositing, high-DPI, GPU timing and active-focus behavior were unavailable. Their acceptance status is **NOT RUN**, not visually certified. No general claim of world-class production readiness is inferred from SVGs.
 
-## Node semantics
+## Target matrix and pass criteria
 
-### Local process
+For each mode, capture quiet, normal, dense, selected, search, degraded, light/dark and reduced-motion states on a real Quattro session. Cover 1920x1080, 2560x1440 and available 4K/fractional scaling. Inspect at actual size. Fail on clipped/overlapping primary labels, unreadable selected information, unstable placement, unbounded line spaghetti, misleading flow semantics, a selected entity hidden by details, keyboard traps or frame hitches.
 
-Filled circular hub. Size grows gently with active socket count. Label is process name; secondary text is socket count.
-
-### Remote system
-
-Hollow/low-fill diamond. Identity is remote IP. Secondary annotation may show locally-known service labels/ports derived without network lookup.
-
-### Listener
-
-Aperture glyph on the machine boundary aligned to its owning process. It is not rendered as a fake remote peer.
-
-## Motion
-
-Only four continuous/transient motions are justified:
-
-1. directional tracers on active links;
-2. acquisition pulse for new relationships;
-3. fade-out for recently closed relationships;
-4. live status pulse in the shell header.
-
-No sweep line, spinning reactor ring, random particles, noise bursts, or animated ornament should return unless it gains a precise semantic.
-
-## Chrome
-
-The shell surface is intentionally restrained:
-
-- theme background/accent/foreground/urgent colors;
-- one top and bottom registration line;
-- very faint scanlines;
-- no card grid;
-- no titlebar;
-- no decorative corners framing empty space;
-- no permanent settings panel.
-
-The graph is the spectacle.
-
-## Legibility gate
-
-Before release, show a screenshot to someone who has not seen the docs. Within a few seconds they should be able to infer:
-
-- the center represents their machine;
-- named local programs own the inner nodes;
-- IPs are remote systems;
-- lines are connections;
-- arrows/tracers indicate direction;
-- clicking something probably inspects it.
-
-If they instead say “cool HUD, what is it showing?”, the design has failed.
+A reviewer should identify who talks to a shared remote, who spawned a process, which subsystem is pressured and by whom, which measured block device is busy (without inventing per-mount attribution), and which application feeds an audio sink. Record answers and actual captures. Fix failures in production code, rerun model/real integrations, and repeat the screenshots before upgrading the release candidate.

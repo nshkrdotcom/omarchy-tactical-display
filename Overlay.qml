@@ -1,197 +1,125 @@
 pragma ComponentBehavior: Bound
-
 import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
-import qs.Commons
 import "core"
-import "instruments"
+import "model/Settings.js" as Settings
 
 Item {
-  id: root
+    id: root
+    // Injected by Quattro v4.0.1; this is hosted, never a standalone ShellRoot.
+    property string omarchyPath: Quickshell.env("OMARCHY_PATH")
+    property var shell: null
+    property var manifest: ({})
+    property var pluginRegistry: null
+    property var barWidgetRegistry: null
+    property bool opened: false
+    property string targetScreen: ""
+    property var renderStatistics: ({})
+    property var currentScreens: Quickshell.screens
+    readonly property string pluginDir: manifest && manifest.__sourceDir ? String(manifest.__sourceDir) : ""
+    readonly property string pluginId: manifest && manifest.id ? String(manifest.id) : "nshkr.tactical-display"
+    readonly property bool telemetryNeeded: opened && currentScreens.length>0
 
-  // Injected by the Omarchy Quattro shell.
-  property string omarchyPath: Quickshell.env("OMARCHY_PATH")
-  property var shell: null
-  property var manifest: ({})
-  property var pluginRegistry: null
-
-  property bool opened: false
-  property string screenFilter: ""
-  property bool showHelp: false
-  property string lastPayloadError: ""
-
-  readonly property string pluginDir: manifest && manifest.__sourceDir ? String(manifest.__sourceDir) : ""
-  readonly property bool telemetryNeeded: opened
-
-  function open(payloadJson) {
-    var args = {}
-    lastPayloadError = ""
-
-    if (payloadJson) {
-      try {
-        args = JSON.parse(payloadJson) || {}
-      } catch (error) {
-        lastPayloadError = String(error)
-        args = {}
-      }
+    // Read-only, identity-free evidence for the native operator acceptance runner.
+    function diagnostics(_payload) {
+        var f=telemetryService.snapshot || {}
+        return JSON.stringify({version:"1.0.0-rc.1",opened:opened,instrument:navigation.navState.instrument,
+            mode:navigation.invocationMode,monitor:targetScreen,helperPid:telemetryService.helperPid,
+            ready:telemetryService.ready,fresh:telemetryService.fresh,status:telemetryService.statusText,
+            frozen:navigation.navState.frozen,sequence:f.sequence===undefined?null:f.sequence,
+            sampleDurationMs:f.sampleDurationMs===undefined?null:f.sampleDurationMs,
+            privacy:navigation.effectiveSettings.privacy,render:renderStatistics})
     }
-
-    // v0.2 is one focused instrument. Legacy radar/reactor payloads still
-    // summon the connection field so existing development bindings keep working.
-    screenFilter = String(args.screen || "")
-    showHelp = args.help === true || args.help === "true"
-    opened = true
-    telemetry.start()
-  }
-
-  function close() {
-    opened = false
-    showHelp = false
-    telemetry.stop()
-  }
-
-  function requestHide() {
-    if (shell && manifest && manifest.id && typeof shell.hide === "function") {
-      shell.hide(String(manifest.id))
-    } else {
-      close()
+    function chooseScreen(requested) {
+        var names=[]
+        for (var i=0;i<currentScreens.length;i++) names.push(String(currentScreens[i].name))
+        if (requested && names.indexOf(requested)>=0) return requested
+        var focused=Hyprland.focusedMonitor ? String(Hyprland.focusedMonitor.name) : ""
+        if (names.indexOf(focused)>=0) return focused
+        return names.length ? names[0] : ""
     }
-  }
-
-  Telemetry {
-    id: telemetry
-    pluginDir: root.pluginDir
-    active: root.telemetryNeeded
-  }
-
-  Variants {
-    model: Quickshell.screens
-
-    PanelWindow {
-      id: tacticalWindow
-      required property var modelData
-
-      readonly property bool selectedScreen: !root.screenFilter || String(modelData.name) === root.screenFilter
-      readonly property bool focusedScreen: !Hyprland.focusedMonitor || String(Hyprland.focusedMonitor.name) === String(modelData.name)
-
-      screen: modelData
-      visible: root.opened && selectedScreen
-      color: "transparent"
-      anchors { top: true; bottom: true; left: true; right: true }
-      exclusionMode: ExclusionMode.Ignore
-
-      WlrLayershell.namespace: "nshkr-tactical-display"
-      WlrLayershell.layer: WlrLayer.Overlay
-      WlrLayershell.keyboardFocus: visible && focusedScreen ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-
-      HudSurface {
-        id: hud
-        anchors.fill: parent
-        active: tacticalWindow.visible
-        title: "NETWORK / LIVE"
-        subtitle: "THIS MACHINE  ⇄  THE WORLD"
-        footerText: "CLICK NODE INSPECT   H HELP   ESC CLOSE"
-        statusText: telemetry.statusText
-        accent: Color.accent
-        foreground: Color.foreground
-        background: Color.background
-        urgent: Color.urgent
-
-        focus: tacticalWindow.focusedScreen && tacticalWindow.visible
-        Keys.priority: Keys.BeforeItem
-        Keys.onPressed: function(event) {
-          if (event.key === Qt.Key_Escape) {
-            root.requestHide()
-            event.accepted = true
-          } else if (event.key === Qt.Key_H || event.key === Qt.Key_Question) {
-            root.showHelp = !root.showHelp
-            event.accepted = true
-          }
-        }
-
-        Component.onCompleted: if (focus) forceActiveFocus()
-        onFocusChanged: if (focus) forceActiveFocus()
-
-        NetworkFieldInstrument {
-          anchors.fill: parent
-          network: telemetry.network
-          system: telemetry.system
-          accent: hud.accent
-          foreground: hud.foreground
-          urgent: hud.urgent
-        }
-
-        Rectangle {
-          anchors.fill: parent
-          visible: root.showHelp
-          color: Qt.rgba(0, 0, 0, 0.88)
-          z: 100
-
-          Column {
-            anchors.centerIn: parent
-            width: Math.min(parent.width * 0.72, 760)
-            spacing: 13
-
-            Text {
-              anchors.horizontalCenter: parent.horizontalCenter
-              text: "CONNECTION FIELD"
-              color: hud.foreground
-              font.pixelSize: 28
-              font.weight: Font.DemiBold
-              font.letterSpacing: 4
-            }
-            Text {
-              width: parent.width
-              horizontalAlignment: Text.AlignHCenter
-              text: "LOCAL PROCESSES LIVE INSIDE THE MACHINE BOUNDARY. REMOTE SYSTEMS LIVE AT THE PERIMETER."
-              color: hud.accent
-              opacity: 0.78
-              wrapMode: Text.WordWrap
-              font.pixelSize: 12
-              font.family: "monospace"
-              font.letterSpacing: 1.0
-            }
-            Text {
-              width: parent.width
-              horizontalAlignment: Text.AlignHCenter
-              text: "LINKS ARE REAL SOCKET RELATIONSHIPS. MOVING TRACERS SHOW DIRECTION, NOT PER-CONNECTION BANDWIDTH. NEW RELATIONSHIPS PULSE; CLOSED RELATIONSHIPS DECAY."
-              color: hud.foreground
-              opacity: 0.62
-              wrapMode: Text.WordWrap
-              font.pixelSize: 11
-              font.family: "monospace"
-            }
-            Text {
-              width: parent.width
-              horizontalAlignment: Text.AlignHCenter
-              text: "LEFT = LIKELY INBOUND    RIGHT = OUTBOUND    TOP = BIDIRECTIONAL    INNER = LOOPBACK"
-              color: hud.foreground
-              opacity: 0.52
-              wrapMode: Text.WordWrap
-              font.pixelSize: 10
-              font.family: "monospace"
-            }
-            Text {
-              anchors.horizontalCenter: parent.horizontalCenter
-              text: "CLICK A PROCESS OR REMOTE SYSTEM TO ISOLATE ITS RELATIONSHIPS.   H / ? HELP   ESC CLOSE"
-              color: hud.accent
-              opacity: 0.72
-              font.pixelSize: 10
-              font.family: "monospace"
-            }
-            Text {
-              anchors.horizontalCenter: parent.horizontalCenter
-              visible: root.lastPayloadError.length > 0
-              text: "Payload warning: " + root.lastPayloadError
-              color: hud.urgent
-              font.pixelSize: 10
-              font.family: "monospace"
-            }
-          }
-        }
-      }
+    function open(payloadJson) {
+        // A canceled cold summon can leave a queued payload in Quattro 4.0.1.
+        // Never display it when the host no longer marks this plugin open.
+        if (shell && shell.openPanelIds && shell.openPanelIds[pluginId] !== true) return
+        var args=Settings.payload(payloadJson)
+        preferences.reload()
+        navigation.open(args)
+        targetScreen=chooseScreen(args.monitor)
+        if (args.monitor && targetScreen!==args.monitor) navigation.setFlag("notice","Requested monitor is unavailable; using the focused display.")
+        if (!targetScreen) { navigation.setFlag("notice","No display is currently available."); return }
+        opened=true
     }
-  }
+    function close() {
+        opened=false
+        navigation.close()
+        targetScreen=""
+        renderStatistics=({})
+    }
+    function requestHide() {
+        if (shell && typeof shell.hide === "function") shell.hide(pluginId)
+        else close()
+    }
+    function openNativePanel(id) {
+        // Only hard-coded observational shell panels may be invoked here.
+        if (["omarchy.audio","omarchy.network"].indexOf(id)<0) return
+        var host=shell
+        requestHide()
+        if (host && typeof host.summon === "function") host.summon(id,"{}")
+    }
+    onCurrentScreensChanged: {
+        var present=false
+        for (var i=0;i<currentScreens.length;i++) if (String(currentScreens[i].name)===targetScreen) present=true
+        if (opened && !present) {
+            targetScreen=chooseScreen("")
+            if (!targetScreen) requestHide()
+        }
+    }
+    Configuration { id: preferences; host: root.shell; pluginId: root.pluginId }
+    ThemeAdapter { id: themeAdapter }
+    NavigationController {
+        id: navigation
+        configuration: preferences
+        telemetry: telemetryService
+        onDismissRequested: root.requestHide()
+    }
+    Telemetry {
+        id: telemetryService
+        pluginDir: root.pluginDir
+        active: root.telemetryNeeded
+        configuration: navigation.effectiveSettings
+        instrument: navigation.navState.instrument
+    }
+    Variants {
+        model: Quickshell.screens
+        PanelWindow {
+            id: surface
+            required property var modelData
+            readonly property bool selectedScreen: String(modelData.name)===root.targetScreen
+            screen: modelData
+            visible: root.opened && selectedScreen
+            color: "transparent"
+            exclusionMode: ExclusionMode.Ignore
+            anchors { top: true; bottom: true; left: true; right: true }
+            WlrLayershell.namespace: "nshkr-tactical-display"
+            WlrLayershell.layer: WlrLayer.Overlay
+            WlrLayershell.keyboardFocus: surface.visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+            Loader {
+                anchors.fill: parent
+                active: surface.visible
+                sourceComponent: TacticalDisplayShell {
+                    id: displayShell
+                    controller: navigation
+                    theme: themeAdapter
+                    active: root.opened
+                    onStatisticsChanged: root.renderStatistics=displayShell.statistics
+                    Component.onCompleted: root.renderStatistics=displayShell.statistics
+                    onNativePanelRequested: id => root.openNativePanel(id)
+                }
+            }
+        }
+    }
+    Component.onDestruction: { opened=false; telemetryService.stop() }
 }

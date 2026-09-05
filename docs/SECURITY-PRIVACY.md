@@ -1,55 +1,31 @@
-# Security and Privacy
+# Security and privacy
 
-## Trust boundary
+The plugin is unsandboxed code inside a trusted, long-lived desktop shell. It is an observational local instrument, not a security boundary or monitoring agent.
 
-Tactical Display is a third-party Omarchy plugin and therefore runs unsandboxed inside the user's long-lived `omarchy-shell` process. Installing any Omarchy plugin means trusting its user-level code.
+## Defaults
 
-This plugin deliberately keeps its own behavior narrow.
+No root, sudo, capabilities, privileged eBPF, packet capture, firewall mutation, process killing, mount changes, service installation, analytics, endpoint intelligence API or cloud connection. Providers only read user-accessible procfs/sysfs/PipeWire. Missing permissions remain explicit. Do not weaken hidepid, ptrace or filesystem permissions to make the graph richer.
 
-## What it reads while open
+Process comm/executable/cgroup/start identity are read, but full argv and environment are not ingested. Executable paths, IPs, process names, audio device identities and mount paths can still be sensitive on screen. No raw telemetry history is persisted. Native user preferences/aliases and first-run/last-mode state are the only ordinary persistence. Runtime hold lock/tombstones contain invocation tokens, not telemetry.
 
-- `/proc/net/tcp`, `tcp6`, `udp`, `udp6`
-- `/proc/net/dev`
-- readable `/proc/<pid>/fd` symlinks for socket ownership
-- `/proc/<pid>/comm`
-- `/proc/<pid>/exe` basename
-- `/proc/<pid>/cmdline` **only to extract argv[0]**; all later arguments are discarded
+## Optional communication and identity
 
-## What it does not do
+Local aliases, hosts and services are offline. `tdNaming=dns` opts into PTR resolution through the system resolver, which may make network requests and disclose queried addresses to that resolver. The worker is asynchronous, timeout-bounded, cache-bounded and killed on close/privacy activation. PTR is unverified identity. Offline MMDB requires an explicitly supplied local database and optional maxminddb module; nothing is fetched automatically.
 
-- no `sudo` or root helper
-- no packet capture
-- no raw sockets
-- no firewall changes
-- no process/socket termination
-- no DNS lookup
-- no GeoIP lookup
-- no HTTP/API calls
-- no telemetry upload
-- no persistent network history
-- no clipboard writes
-- no Hyprland config mutation
+Privacy mode replaces entity identities with stable session-rendering aliases, hides full details/search input/copy identity fields, and fully obscures the underlying desktop. Normal mode uses a strong dim with opaque readable text planes. Privacy is **not** cryptographic anonymization, isolation from other same-user processes, or a guarantee against reidentification from topology. The raw observations still exist in memory. Explicit CLI redirects, screenshots and native diagnostics are the operator's responsibility.
 
-## Why full command lines are not displayed
+## Execution boundaries
 
-Process command arguments can contain API keys, bearer tokens, passwords, signed URLs, database credentials, or other secrets. Connection Field only keeps the executable identity / `argv[0]`, process name, and PID. Do not casually broaden this in the UI.
+Runtime subprocesses receive argument arrays, not interpolated shell commands. Telemetry has an allowlisted stdin protocol and no execute-command method. Untrusted strings have control/bidi text removed, bounded lengths and QML PlainText treatment. JSON structure, frame size, nested fields, IDs and non-finite values are validated before rendering. Provider-specific failures cannot substitute a fake successful frame.
 
-## Process visibility
+External provider commands have time/output limits and a Linux parent-death guard, with process-group cleanup. Capacity probes are isolated and restricted; NFS/FUSE are not synchronously statvfs-probed. Optional vendor tools are conservatively polled. Hold state uses owned mode-0700 directories, mode-0600 regular one-link files, no symlink following, an atomic replacement and bounded lock acquisition. Release tombstones prevent a late press from reopening an already released hold.
 
-Linux permissions may expose a socket in `/proc/net/*` while preventing attribution through another process's file-descriptor directory. Such sockets remain visible as unattributed. Do not silently escalate privilege to fill the gap.
+## Audio actions
 
-## On-screen sensitivity
+Observation is default. Opted-in actions require an explicit confirmation and are disabled while frozen. A fresh PipeWire graph revalidates the selected epoch+serial before passing its current numeric ID to wpctl. Mute/default changes have one-step undo where the previous target is known. **wpctl does not provide an atomic serial-conditional mutation here**: a daemon/object change between revalidation and the command remains a narrow race. Do not use these optional controls as a security-sensitive automation API. Rerouting is deliberately not guessed from text output or undocumented commands.
 
-The overlay can display:
+## Denial of service and residual limits
 
-- remote IP addresses;
-- process names and PIDs;
-- executable identity;
-- local/remote ports and service names;
-- listener state.
+Scans, frames, nesting, command bursts, event/trend retention, layout and labels have bounds. Incomplete scans do not manufacture exit storms. Close stops timers/collection, drops state and unloads the overlay. The helper restarts with a finite backoff budget, not a hot loop. A user-controlled kernel/PipeWire session can still withhold data; a broken Qt/compositor driver is outside the backend's guarantees. Actual Qt teardown, hotplug and long-session resource behavior require the target gates in HANDOFF.md.
 
-That can still be sensitive during screen sharing or recording. A future presentation-redaction mode may be useful, but it should be explicit and truthful rather than silently replacing values.
-
-## Interpretation boundary
-
-Connection Field is not a vulnerability scanner, firewall monitor, IDS, or attack detector. `inbound` is a best-effort inference based on a local port matching a visible listener. The visual language must never imply that an inbound relationship is inherently malicious.
+The overlay ZIP contains no font binaries, secrets or captured endpoint/process history. Test fixtures are explicitly fictional. Before sharing diagnostic output, review it; doctor may report local tool paths and errors, and raw `telemetry.py --once` output is sensitive by design.

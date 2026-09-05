@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Tactical Display native inline settings v1",
+  "type": "object",
+  "properties": {
+    "id": {
+      "const": "nshkr.tactical-display"
+    },
+    "tdVersion": {
+      "type": "integer",
+      "default": 1,
+      "const": 1
+    },
+    "tdDefaultInstrument": {
+      "type": "string",
+      "default": "connection",
+      "enum": [
+        "connection",
+        "processes",
+        "machine",
+        "storage",
+        "audio"
+      ]
+    },
+    "tdLastInstrument": {
+      "type": "string",
+      "default": "connection",
+      "enum": [
+        "connection",
+        "processes",
+        "machine",
+        "storage",
+        "audio"
+      ]
+    },
+    "tdAnimation": {
+      "type": "string",
+      "default": "normal",
+      "enum": [
+        "reduced",
+        "normal",
+        "vivid"
+      ]
+    },
+    "tdRefreshProfile": {
+      "type": "string",
+      "default": "balanced",
+      "enum": [
+        "efficient",
+        "balanced",
+        "responsive"
+      ]
+    },
+    "tdLoopback": {
+      "type": "boolean",
+      "default": true
+    },
+    "tdListeners": {
+      "type": "boolean",
+      "default": true
+    },
+    "tdNaming": {
+      "type": "string",
+      "default": "local",
+      "enum": [
+        "raw",
+        "local",
+        "dns"
+      ]
+    },
+    "tdLabels": {
+      "type": "string",
+      "default": "balanced",
+      "enum": [
+        "minimal",
+        "balanced",
+        "dense"
+      ]
+    },
+    "tdPrivacy": {
+      "type": "boolean",
+      "default": false
+    },
+    "tdBarMode": {
+      "type": "string",
+      "default": "icon",
+      "enum": [
+        "icon",
+        "label"
+      ]
+    },
+    "tdIntroSeen": {
+      "type": "boolean",
+      "default": false
+    },
+    "tdAudioActions": {
+      "type": "boolean",
+      "default": false
+    },
+    "tdAliases": {
+      "type": "object",
+      "default": {},
+      "maxProperties": 512,
+      "additionalProperties": {
+        "type": "string",
+        "maxLength": 253
+      }
+    },
+    "tdOfflineDb": {
+      "type": "string",
+      "default": "",
+      "maxLength": 4096
+    }
+  },
+  "additionalProperties": true
+}

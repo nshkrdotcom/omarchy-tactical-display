@@ -1,35 +1,13 @@
 # Changelog
 
-## 0.2.0 - 2026-09-04
+## 1.0.0-rc.1 - 2026-09-05 UTC
 
-Product reset after live visual review:
+Expanded the 0.2.0 network baseline into the five-instrument suite. Replaced the Radar/Reactor/Scanlines presentation with shared semantic depth, bounded collision-aware layouts and plain-text labels. Added native bar integration, instrument navigation/context, focus/expand/isolate, search and composable lenses, exact freeze/paged inspection, settings, first-run/help, privacy, reduced motion and focused-monitor lifecycle.
 
-- replaced the original Network Radar/System Reactor presentation with one focused **Connection Field** instrument;
-- local processes now appear as inner machine-owned hubs;
-- remote IP systems now appear as external peers;
-- real process↔remote socket relationships are rendered as links;
-- outbound, likely inbound, mixed, and loopback geometry now carries actual semantic meaning;
-- multiple kernel sockets aggregate into a human-readable process↔remote-service relationship;
-- moving tracers show direction only, explicitly not fake per-link bandwidth;
-- listener sockets render as machine-boundary apertures;
-- new relationships pulse; recently closed relationships decay;
-- process/remote click isolation and inspection added;
-- backend emits a structured `network` model in addition to raw contacts;
-- process attribution now carries executable/argv0 identity while deliberately discarding full command arguments;
-- manifest, bindings, docs, tests, architecture, security model, and handoff updated;
-- automated suite expanded to 24 passing tests.
+Hardened procfs ownership with process-instance identities, multiple owners, raced-exit handling and partial-observation semantics. Added optional inet_diag TCP goodput, real process/machine/storage/PipeWire providers, safe capacity isolation, optional GPU/thermal, aliases/services/opt-in resolver/offline MMDB, bounded events/trends and supervised NDJSON transport. Added opt-in confirmed audio mute/default/undo, read-only diagnostics, guarded hold invocation, real Linux integration tests, shared-renderer fixture tests and exact target validation tools.
 
-Prior real-host evidence: Quattro plugin validation passed and both v0.1 overlays rendered. Connection Field itself still requires live visual/runtime hardening on the target host.
+Retired six legacy QML files through explicit overlay deletion metadata. Native Quattro/Qt and visual acceptance remain NOT RUN in the build environment; the rc version deliberately does not assert those gates passed.
 
-## 0.1.0 - 2026-09-04
+## 0.2.0 - supplied baseline
 
-Greenfield implementation for Omarchy Quattro:
-
-- one on-demand Quattro overlay with payload-selected instruments;
-- Network Radar prototype;
-- System Reactor prototype;
-- dependency-free Linux procfs/sysfs backend;
-- multi-monitor layer-shell presentation with one shared backend;
-- Omarchy theme integration;
-- automated tests and validation tooling;
-- architecture/security/testing/visual-design/handoff documentation.
+Single Connection Field instrument, procfs socket/process attribution and 24 baseline tests. Source identity is the supplied Repomix SHA-256 recorded in OVERLAY_INFO.md; no Git commit was supplied.

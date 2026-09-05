@@ -1,52 +1,31 @@
 #!/usr/bin/env bash
 set -euo pipefail
-
-PLUGIN_ID="nshkr.tactical-display"
 ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
-
-say() { printf '%-28s %s\n' "$1" "$2"; }
-check_cmd() {
-  if command -v "$1" >/dev/null 2>&1; then say "$1" "OK ($(command -v "$1"))"; else say "$1" "MISSING"; fi
-}
-
-printf 'Tactical Display doctor\n\n'
-say "repo" "$ROOT"
-check_cmd python3
-check_cmd omarchy
-check_cmd omarchy-shell
-check_cmd quickshell
-if command -v qmllint >/dev/null 2>&1; then
-  say "qmllint" "OK ($(command -v qmllint))"
-elif [[ -x /usr/lib/qt6/bin/qmllint ]]; then
-  say "qmllint" "OK (/usr/lib/qt6/bin/qmllint)"
-else
-  say "qmllint" "MISSING"
+printf 'Tactical Display 1.0.0-rc.1 / read-only environment inventory\n'
+printf 'Repository: %s\nKernel: ' "$ROOT"; uname -sr
+python3 --version
+for tool in omarchy omarchy-shell quickshell hyprctl pw-dump wpctl node; do
+  if command -v "$tool" >/dev/null 2>&1; then printf 'AVAILABLE %-16s %s\n' "$tool" "$(command -v "$tool")"; else printf 'NOT RUN   %-16s not installed\n' "$tool"; fi
+done
+if command -v qmllint >/dev/null 2>&1; then qmllint --version
+elif [[ -x /usr/lib/qt6/bin/qmllint ]]; then /usr/lib/qt6/bin/qmllint --version
+else printf 'NOT RUN   qmllint          Qt QML tooling not installed\n'; fi
+printf 'OMARCHY_PATH: %s\nWAYLAND_DISPLAY: %s\n' "${OMARCHY_PATH:-unset}" "${WAYLAND_DISPLAY:-unset}"
+if [[ -n ${OMARCHY_PATH:-} ]] && command -v git >/dev/null 2>&1; then
+  git -C "$OMARCHY_PATH" describe --tags --always 2>/dev/null || true
+  git -C "$OMARCHY_PATH" rev-parse HEAD 2>/dev/null || true
 fi
-check_cmd hyprctl
-check_cmd nvidia-smi
-printf '\n'
-
-if command -v omarchy-shell >/dev/null 2>&1; then
-  if omarchy-shell shell ping >/dev/null 2>&1; then say "omarchy-shell" "RUNNING"; else say "omarchy-shell" "NOT RESPONDING"; fi
-fi
-
-if command -v omarchy >/dev/null 2>&1; then
-  if omarchy plugin validate "$ROOT" >/dev/null 2>&1; then say "manifest" "VALID"; else say "manifest" "VALIDATION FAILED"; fi
-fi
-
-if command -v hyprctl >/dev/null 2>&1; then
-  errors="$(hyprctl configerrors 2>/dev/null || true)"
-  if [[ -z "$errors" ]]; then say "hyprland config" "CLEAN"; else say "hyprland config" "ERRORS PRESENT"; fi
-fi
-
-if command -v omarchy >/dev/null 2>&1; then
-  found="$(omarchy plugin list --json 2>/dev/null | python3 -c 'import json,sys; p=json.load(sys.stdin); print(any(x.get("id")=="nshkr.tactical-display" for x in p))' 2>/dev/null || true)"
-  say "plugin discovered" "${found:-UNKNOWN}"
-fi
-
-printf '\nLive backend probe:\n'
-frame="$(python3 "$ROOT/scripts/telemetry.py" --once --interval 0.25)"
-printf '%s\n' "$frame" | python3 -m json.tool >/dev/null
-say "telemetry frame" "VALID JSON"
-summary="$(printf '%s\n' "$frame" | python3 -c 'import json,sys; d=json.load(sys.stdin); s=d.get("network",{}).get("summary",{}); print("{} connections / {} processes / {} remotes / {} listeners".format(s.get("connections",0), s.get("processes",0), s.get("remoteSystems",0), s.get("listeners",0)))')"
-say "network model" "$summary"
+python3 - "$ROOT" <<'PY'
+import sys
+sys.path.insert(0,sys.argv[1])
+from td_telemetry.engine import TelemetryEngine
+engine=TelemetryEngine('all')
+try:
+    frame=engine.sample()
+    for name,c in frame['capabilities'].items():
+        print('%-12s %-12s source=%s'%(name,c['status'],c['source']))
+        if c.get('reason'):print('  '+c['reason'])
+        if c.get('suggestion'):print('  '+c['suggestion'])
+    print('No raw process, socket or audio history written. Inventory is not desktop acceptance.')
+finally:engine.close()
+PY

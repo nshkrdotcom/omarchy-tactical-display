@@ -6,6 +6,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import telemetry  # noqa: E402
+from td_telemetry.network import build_instance_model  # noqa: E402
 
 
 def contact(**overrides):
@@ -54,7 +55,8 @@ class NetworkModelTests(unittest.TestCase):
         self.assertEqual(model["links"][0]["servicePort"], 443)
         self.assertEqual(model["links"][0]["newCount"], 2)
         self.assertEqual(model["summary"]["newConnections"], 2)
-        self.assertEqual(model["processes"][0]["command"], "browser --profile default")
+        self.assertEqual(model["processes"][0]["command"], "browser")
+        self.assertNotIn("--profile", str(model))
 
     def test_inbound_relationship_uses_local_service_port(self):
         inbound = contact(
@@ -114,6 +116,32 @@ class NetworkModelTests(unittest.TestCase):
         self.assertEqual(model["summary"]["recentClosed"], 1)
         self.assertFalse(model["links"][0]["active"])
         self.assertEqual(model["links"][0]["closedAgeMs"], 500)
+
+    def test_unattributed_socket_survives_instance_expansion_model(self):
+        inbound = contact(
+            key="ssh-inbound",
+            kind="inbound",
+            localPort=22,
+            remotePort=58418,
+            remoteAddress="192.168.122.1",
+            remote="192.168.122.1:58418",
+            pid=None,
+            process="Unattributed",
+            executable="",
+            command="",
+            owners=[],
+            processKey=None,
+            groupKey=None,
+        )
+        model = build_instance_model([inbound])
+
+        self.assertEqual(len(model["instances"]), 1)
+        self.assertEqual(model["instances"][0]["name"], "Unattributed")
+        self.assertIsNone(model["instances"][0]["pid"])
+        self.assertEqual(len(model["instanceLinks"]), 1)
+        self.assertEqual(model["instanceLinks"][0]["servicePort"], 22)
+        self.assertEqual(model["instanceLinks"][0]["kind"], "inbound")
+        self.assertEqual(model["instanceLinks"][0]["processKey"], model["instances"][0]["key"])
 
 
 if __name__ == "__main__":

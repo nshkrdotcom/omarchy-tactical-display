@@ -1,28 +1,17 @@
 SHELL := /bin/bash
-
-.PHONY: test validate doctor backend-once install-local bindings clean package
-
+.PHONY: test validate doctor preview bindings install-local backend-once
 test:
-	python3 -m unittest discover -s tests -p 'test_*.py' -v
-
+	PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -p 'test_*.py' -v
+	node --test --test-reporter=spec tests/js/*.test.js
 validate:
-	./scripts/validate.sh
-
+	bash scripts/validate.sh
 doctor:
-	./scripts/doctor.sh
-
-backend-once:
-	python3 scripts/telemetry.py --once --interval 0.25 | python3 -m json.tool
-
-install-local:
-	./scripts/install-local.sh
-
+	bash scripts/doctor.sh
+preview:
+	node scripts/render-fixtures.js --out /tmp/tactical-display-fixtures
 bindings:
-	./scripts/print-bindings.sh
-
-clean:
-	find . -type d -name __pycache__ -prune -exec rm -rf {} +
-	find . -type f -name '*.pyc' -delete
-
-package: clean
-	cd .. && zip -r omarchy-tactical-display.zip omarchy-tactical-display -x 'omarchy-tactical-display/.git/*'
+	bash scripts/print-bindings.sh
+install-local:
+	bash scripts/install-local.sh
+backend-once:
+	python3 scripts/telemetry.py --once --instrument all | python3 -m json.tool

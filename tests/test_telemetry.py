@@ -47,14 +47,14 @@ class LiveTelemetryTests(unittest.TestCase):
     def test_live_engine_frame_has_valid_ranges(self):
         engine = telemetry.TelemetryEngine()
         frame = engine.sample()
-        self.assertEqual(frame["version"], 2)
+        self.assertEqual(frame["version"], 3)
         self.assertIn("system", frame)
-        self.assertIn("contacts", frame)
+        self.assertIn("processes", frame)
         self.assertIn("network", frame)
-        self.assertGreaterEqual(frame["system"]["netRxBps"], 0)
-        self.assertGreaterEqual(frame["system"]["netTxBps"], 0)
+        self.assertIsNone(frame["system"]["netRxBps"])
+        self.assertIsNone(frame["system"]["netTxBps"])
         self.assertGreaterEqual(frame["system"]["uptimeSeconds"], 0)
-        self.assertIsInstance(frame["contacts"], list)
+        self.assertIsInstance(frame["processes"], list)
         self.assertIn("summary", frame["network"])
         self.assertIn("links", frame["network"])
         json.dumps(frame)
@@ -68,9 +68,9 @@ class LiveTelemetryTests(unittest.TestCase):
             timeout=5,
         )
         frame = json.loads(completed.stdout.strip())
-        self.assertEqual(frame["version"], 2)
+        self.assertEqual(frame["version"], 3)
         self.assertIn("netRxBps", frame["system"])
-        self.assertIsInstance(frame["contacts"], list)
+        self.assertIsInstance(frame["processes"], list)
 
 
 if __name__ == "__main__":

@@ -1,149 +1,52 @@
-# Testing
+# Tests and acceptance
 
-## Automated suite
-
-Run:
+## Available automated suite
 
 ```bash
 make test
+bash scripts/validate.sh
+bash scripts/validate.sh --require-native
 ```
 
-The dependency-free `unittest` suite covers:
+Python unittest covers preserved socket parsing/model tests, real loopback TCP listener/client/accepted/closed lifecycle, IPv6 and UDP, actual FD ownership including shared sockets, process ancestry/CPU/I/O, real temporary fsync writes/mounts, schema/capabilities/events/limits, guarded hold ordering/locking and provider command cleanup. The runtime suite creates and tears down **50 actual telemetry helpers**, checks partial stdin frames/malformed commands/freeze correlation/EOF shutdown and fails closed for unapproved actions. This is not 50 desktop opens.
 
-- Quattro manifest and entry-point contract;
-- no symlinks;
-- `Item` + `open()` + `close()` lifecycle;
-- one-shell-host pattern;
-- fullscreen layer-shell primitives;
-- avoidance of the known per-screen direct parent-width/height binding pattern;
-- no right-click MouseAreas;
-- procfs IPv4/IPv6 parsing;
-- TCP socket parsing and direction classification;
-- real TCP listener/connection discovery via `/proc`;
-- PID/process attribution for a real socket owned by the test process;
-- close-to-ghost lifecycle;
-- process↔remote aggregation;
-- multiple sockets collapsing into one relationship;
-- listener-vs-remote modeling;
-- loopback scope;
-- inbound service-port semantics;
-- closed relationship retention;
-- live `TelemetryEngine` frame and CLI JSON output;
-- required docs and runtime-script permissions.
+Node executes the same production Settings, Navigation, Protocol, InstrumentModel, Inspection, Palette and Layout functions. It checks composable lenses, fuzzy search, cross-instrument instance context, stability, privacy/copy redaction, malformed/deep/non-finite data, all five modes at quiet/normal/dense and multiple sizes, collision-free primary labels, selected reservation, contrast, explicit expansion, directed Audio focus, metric-aware Machine focus and dense render bounds. It also starts the **real production helper** and validates its frame with the frontend schema.
 
-## Validation suite
+Fixtures are deliberately fictional and only imported by tests/render tooling. Deterministic fixture edge cases do not replace real Linux/PipeWire/native integrations. A missing inet_diag capability, non-loopback test address or PipeWire session results in a reasoned skip. Check the skipped list on the real target; do not count it as passed.
+
+The validation script runs source tests, Python compilation without bytecode output, shell syntax, manifests/checksums, then installed native manifest validation and QML lint when available. Exit 77 under `--require-native` means an environment-dependent gate was unavailable, not success. The normal non-native mode reports PARTIAL explicitly.
+
+## Visual fixtures
 
 ```bash
-make validate
+node scripts/render-fixtures.js --out /tmp/tactical-fixtures
 ```
 
-Adds:
+50 SVG combinations plus metrics are developer evidence, not Qt captures. Read VISUAL-DESIGN.md for what was actually inspected and the target matrix. Never remove their test labels or feed them to the production backend to claim a live test.
 
-- shell-script syntax checks;
-- live backend JSON probe;
-- `omarchy plugin validate .` when Omarchy is installed;
-- `qmllint -I "$OMARCHY_PATH/shell" ...` when available.
-
-A skipped host/QML step is not a pass.
-
-## Real Quattro functional acceptance
-
-Run on the target Omarchy workstation.
-
-### Baseline
+## Real native lifecycle and soak
 
 ```bash
-omarchy plugin validate .
-omarchy-restart-shell
-omarchy-shell shell summon nshkr.tactical-display '{}'
+python3 scripts/live-validate.py --run --cycles 50 --soak-seconds 1800 --output /tmp/tactical-native.json
+python3 scripts/audio-integration.py --run
 ```
 
-Expected immediately:
+The first requires actual Omarchy, hyprctl and a Wayland session, takes keyboard focus as it cycles the overlay, checks the native read-only diagnostic method, validates exactly one helper at each open, verifies helper exit after hide, samples real helper/shell CPU counters/RSS and cycles modes through a 30-minute soak. Its report leaves pointer/key/hold/bar/hotplug/reload/visual gates explicitly NOT RUN. Read and exercise those separately. A shorter run never qualifies as the 30-minute gate.
 
-- header says `NETWORK / LIVE` and `THIS MACHINE ⇄ THE WORLD`;
-- local process hubs appear inside the machine boundary;
-- remote IP systems appear at the perimeter when external connections exist;
-- loopback remains inside the machine field;
-- right/left sector labels match outbound/inbound semantics;
-- summary counts update.
+The audio runner requires real pw-dump/pw-play and a sink. It plays 12 seconds of generated silence in a temporary WAV, verifies the actual stream and outgoing PipeWire route, then terminates its own stream. It does not alter defaults/volume/mute, perform a destructive device change or use fixture routes. Missing session/sink/tools exits 77.
 
-### Process identity
-
-With the overlay open, start or use a networked program you can identify (browser, `curl`, `ssh`, local dev server). Confirm the process hub name/PID is plausible and clicking it isolates only its attached relationships.
-
-### Outbound acquisition
-
-In another terminal:
+## Profiling
 
 ```bash
-curl -I https://example.com
+python3 scripts/profile.py --instrument all --samples 40 --interval 0.75 --output /tmp/tactical-profile.json
 ```
 
-Expected: a new outbound relationship appears or pulses briefly on the right side and may fade quickly after curl exits.
+Reports actual sample p50/p95/max, JSON frame size, own CPU time and current/high-water RSS, counts and capability statuses. No raw process/socket names are saved. This measures backend collection/serialization overhead, not QML model/layout or GPU frames. Native diagnostics add rendered counts and measured QML layout milliseconds; the live runner records real process stats. Review CPU deltas per clock tick and RSS across comparable points, not one high-water sample as a leak verdict.
 
-### Listener aperture
+For desktop frame hitches, run the existing shell with its supported Qt/Quickshell profiling tools only after preserving the normal launch environment; do not start a second competing shell. Save observations and actual timings, compare closed/open idle, generate a realistic workload and inspect every mode. Exact manual recipes and pass/fail criteria are in HANDOFF.md.
 
-```bash
-python3 -m http.server 8765
-```
+## Overlay acceptance
 
-Expected: listener count increases and an aperture appears on the machine boundary for the owning Python process. It must **not** create a fake remote system.
+The delivered ZIP is tested over a pristine reconstructed baseline, deletion metadata applied, final files compared byte-for-byte, complete automated tests rerun and both checksum manifests verified. OVERLAY_BASELINE.sha256 verifies the supplied baseline before extraction. MANIFEST.sha256 covers the final content tree except checksum self/cyclic entries; OVERLAY_MANIFEST.sha256 covers ZIP payload except itself. Untracked caches/.git are not product content.
 
-### Likely inbound
-
-From another machine on the LAN, connect to that server if network policy permits:
-
-```bash
-curl http://TARGET_IP:8765/
-```
-
-Expected: a likely-inbound relationship appears on the left side connected to the Python process. This tests the listener-port inference path.
-
-### Selection
-
-- click a process: unrelated graph dims, attached remotes/links stay bright;
-- click a remote: unrelated graph dims, attached processes/links stay bright;
-- click empty space or the same selected node: clear isolation;
-- detail panel remains readable and does not cover the entire graph.
-
-### Lifecycle
-
-- new relationship pulses;
-- closed relationship becomes dashed/fades rather than popping immediately;
-- `Esc` closes;
-- shell `hide` closes;
-- hold/release binding closes reliably enough for daily use;
-- toggle fallback works.
-
-## Visual acceptance
-
-Test at minimum:
-
-- 1920x1080;
-- 2560x1440 or native primary resolution;
-- high-DPI/fractional scaling if used;
-- actual multi-monitor layout.
-
-Look specifically for:
-
-- node-label collisions;
-- remote nodes pushed outside usable content margins;
-- detail panel obscuring selected topology;
-- excessive line crossings under browser-heavy workloads;
-- process labels too small at 1080p;
-- visual aliasing/jank at high refresh rate;
-- selected/hovered state not repainting;
-- layout churn whenever connections come/go.
-
-The release gate is subjective but strict: a first-time viewer should not ask “what radar is this?” They should see a machine, local programs, remote peers, and connections.
-
-## Performance acceptance
-
-With Connection Field open for at least 60 seconds:
-
-```bash
-ps -C python3 -o pid,pcpu,rss,args | grep tactical-display
-ps -C quickshell -o pid,pcpu,rss,args
-```
-
-Repeat under browser/socket churn. Do not invent an arbitrary CPU threshold before measuring the real target hardware; sustained visible shell stutter is a release blocker.
+Classify gates as PASS (executed), FAIL (executed and failed), PARTIAL (state exact subset), or NOT RUN (missing environment). Native command not installed is never a successful native test.

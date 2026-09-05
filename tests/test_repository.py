@@ -21,7 +21,8 @@ class RepositoryCompletenessTests(unittest.TestCase):
         ]
         missing = [path for path in required if not (ROOT / path).is_file()]
         self.assertEqual(missing, [])
-        self.assertTrue((ROOT / "instruments" / "NetworkFieldInstrument.qml").is_file())
+        self.assertTrue((ROOT / "visual" / "Field.qml").is_file())
+        self.assertTrue((ROOT / "model" / "InstrumentModel.js").is_file())
 
     def test_runtime_scripts_are_executable(self):
         for relative in ["scripts/telemetry.py", "scripts/doctor.sh", "scripts/validate.sh", "scripts/install-local.sh", "scripts/print-bindings.sh"]:
