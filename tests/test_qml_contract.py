@@ -82,6 +82,17 @@ class QmlContractTests(unittest.TestCase):
         self.assertLess(shell.index('id: field'), shell.index('id: densityStatus'))
         self.assertIn('ESC close  /  BACKSPACE back', shell)
 
+    def test_picker_has_explicit_keyboard_navigation(self):
+        sheet = (ROOT / 'core/CommandSheet.qml').read_text()
+        for token in ('property int pickerIndex', 'id: instrumentRepeater',
+                      'instrumentRepeater.itemAt(root.pickerIndex)',
+                      'event.key === Qt.Key_Down', 'event.key === Qt.Key_Up',
+                      'event.key === Qt.Key_Return || event.key === Qt.Key_Enter',
+                      'root.controller.chooseInstrument(instrument.id)'):
+            self.assertIn(token, sheet)
+        self.assertIn('Qt.callLater(function() { root.focusPicker(root.currentInstrumentIndex()) })', sheet)
+        self.assertNotIn('row.button', sheet)
+
     def test_qml_relative_import_targets_exist(self):
         for file in ROOT.rglob('*.qml'):
             for target in re.findall(r'^import\s+"([^"]+)"', file.read_text(), re.M):

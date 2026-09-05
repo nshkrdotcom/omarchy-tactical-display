@@ -12,6 +12,21 @@ FocusScope {
     readonly property string kind: controller.pendingAction ? "confirm" : controller.navState.showSettings ? "settings" : controller.navState.showCapabilities ? "capabilities" : controller.navState.showHelp ? "help" : "picker"
     readonly property string heading: kind === "confirm" ? "Confirm audio change" : kind === "settings" ? "Instrument settings" : kind === "capabilities" ? "Data sources and freshness" : kind === "help" ? controller.view.info.name + " / legend" : controller.navState.showIntro ? "See how your machine behaves" : "Choose an instrument"
     readonly property var capabilities: Object.keys(controller.displayFrame.capabilities||{}).map(key => controller.displayFrame.capabilities[key])
+    property int pickerIndex: 0
+    function currentInstrumentIndex() {
+        for (var i=0;i<Instruments.catalog.length;i++)
+            if (Instruments.catalog[i].id === controller.navState.instrument) return i
+        return 0
+    }
+    function focusPicker(index) {
+        if (Instruments.catalog.length === 0) return
+        root.pickerIndex = Math.max(0,Math.min(Instruments.catalog.length-1,index))
+        var row = instrumentRepeater.itemAt(root.pickerIndex)
+        if (row) {
+            row.forceActiveFocus()
+            root.reveal(row)
+        }
+    }
     function reveal(item) {
         var point=item.mapToItem(sheetContent,0,0)
         if (point.y<scroll.contentY) scroll.contentY=Math.max(0,point.y)
@@ -23,7 +38,28 @@ FocusScope {
         return !found?"Collected on selection":partial?"Partial capability / select to inspect":"Available in this session"
     }
     focus: visible
-    onVisibleChanged: if (visible) forceActiveFocus()
+    Keys.priority: Keys.BeforeItem
+    Keys.onPressed: event => {
+        if (root.kind !== "picker" || event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) return
+        if (event.key === Qt.Key_Down || event.key === Qt.Key_Right) root.focusPicker(root.pickerIndex + 1)
+        else if (event.key === Qt.Key_Up || event.key === Qt.Key_Left) root.focusPicker(root.pickerIndex - 1)
+        else if (event.key === Qt.Key_Home) root.focusPicker(0)
+        else if (event.key === Qt.Key_End) root.focusPicker(Instruments.catalog.length - 1)
+        else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+            var instrument = Instruments.catalog[root.pickerIndex]
+            if (instrument) root.controller.chooseInstrument(instrument.id)
+        } else if (event.key === Qt.Key_Backspace) root.controller.back()
+        else return
+        event.accepted = true
+    }
+    onVisibleChanged: {
+        if (!visible) return
+        forceActiveFocus()
+        if (root.kind === "picker") Qt.callLater(function() { root.focusPicker(root.currentInstrumentIndex()) })
+    }
+    onKindChanged: {
+        if (visible && root.kind === "picker") Qt.callLater(function() { root.focusPicker(root.currentInstrumentIndex()) })
+    }
     Rectangle { anchors.fill: parent; color: root.theme.colors.background; opacity: 0.78 }
     MouseArea { anchors.fill: parent; onClicked: root.controller.back() }
     Rectangle {
@@ -60,13 +96,21 @@ FocusScope {
                     width: parent.width; spacing: 14; visible: root.kind === "picker"
                     Text { width: parent.width; text: "Tactical Display is local, live instrumentation over your desktop. Press 1-5 to switch, / to search, Space to freeze, ? for the legend, and Escape to close immediately."; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.bodySize }
                     Repeater {
+                        id: instrumentRepeater
                         model: Instruments.catalog
-                        delegate: Column {
+                        delegate: FocusScope {
                             id: instrumentRow
                             required property var modelData
-                            width: scroll.availableWidth; spacing: 4
-                            InstrumentButton { width: parent.width; text: instrumentRow.modelData.key+"  "+instrumentRow.modelData.name; chosen: root.controller.navState.instrument===instrumentRow.modelData.id; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.bodySize; onClicked: root.controller.chooseInstrument(instrumentRow.modelData.id); onActiveFocusChanged: if (activeFocus) root.reveal(this) }
-                            Text { width: parent.width; text: instrumentRow.modelData.purpose+"\n"+root.capabilityLabel(instrumentRow.modelData); textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
+                            required property int index
+                            width: scroll.availableWidth
+                            implicitHeight: instrumentColumn.implicitHeight
+                            activeFocusOnTab: true
+                            Column {
+                                id: instrumentColumn
+                                width: parent.width; spacing: 4
+                                InstrumentButton { id: instrumentButton; focus: true; width: parent.width; text: instrumentRow.modelData.key+"  "+instrumentRow.modelData.name; chosen: root.controller.navState.instrument===instrumentRow.modelData.id; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.bodySize; onClicked: root.controller.chooseInstrument(instrumentRow.modelData.id); onActiveFocusChanged: if (activeFocus) { root.pickerIndex=instrumentRow.index; root.reveal(instrumentRow) } }
+                                Text { width: parent.width; text: instrumentRow.modelData.purpose+"\n"+root.capabilityLabel(instrumentRow.modelData); textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
+                            }
                         }
                     }
                 }
