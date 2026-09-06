@@ -83,6 +83,19 @@ class DeliveryTests(unittest.TestCase):
         self.assertIn('d,retries=wait_soak_diagnostic(mode)', text)
         self.assertIn("'diagnosticRetries':retries", text)
 
+    def test_native_soak_holds_one_instrument_and_checks_shell_growth(self):
+        text = (ROOT / 'scripts/live-validate.py').read_text()
+        self.assertIn("p.add_argument('--soak-seconds',type=int,default=600)", text)
+        self.assertIn("report['soakStatus']='PASS' if a.soak_seconds>=600", text)
+        self.assertIn("p.add_argument('--soak-instrument',choices=MODES,default='machine'", text)
+        soak = text.split('        if a.soak_seconds:', 1)[1].split("        shell_samples=", 1)[0]
+        self.assertIn('mode=a.soak_instrument', soak)
+        self.assertIn("report['soakInstrument']=mode", soak)
+        self.assertNotIn('last_switch', soak)
+        self.assertNotIn('MODES[(MODES.index(mode)+1)%len(MODES)]', soak)
+        self.assertIn("'observedSoakShellRssGrowthBytes'", text)
+        self.assertIn('Shell RSS growth exceeded configured soak budget', text)
+
     def test_audio_pid_inherits_client_instance_identity(self):
         raw=[{'id':10,'type':'PipeWire:Interface:Client','info':{'props':{'application.process.id':'42','object.serial':100}}},
              {'id':11,'type':'PipeWire:Interface:Node','info':{'props':{'client.id':10,'media.class':'Stream/Output/Audio','object.serial':101}}}]

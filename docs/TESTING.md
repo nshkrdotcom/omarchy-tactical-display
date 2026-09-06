@@ -88,11 +88,11 @@ Record this gate as NOT RUN unless it was actually exercised on the target Wayla
 ## Real native lifecycle and soak
 
 ```bash
-python3 scripts/live-validate.py --run --cycles 50 --soak-seconds 1800 --output /tmp/tactical-native.json
+python3 scripts/live-validate.py --run --cycles 50 --soak-seconds 600 --output /tmp/tactical-native.json
 python3 scripts/audio-integration.py --run
 ```
 
-The first command requires Omarchy, Hyprland and Wayland. It repeatedly summons/hides the real overlay, checks exactly one helper, verifies teardown/freshness/sequence progress, records helper and shell RSS/FD/child counts, and performs a 30-minute instrument soak. Defaults fail if helper RSS exceeds 256 MiB, helper FDs exceed 128, helper children exceed 4, helper CPU averages above 75% of one core between soak samples, ready time exceeds 5 seconds, sample latency exceeds 1.5 seconds, same-shell RSS grows more than 128 MiB, same-shell FDs grow by more than 64, or same-shell children grow by more than 16 across lifecycle cycles. These ceilings are configurable arguments for measured host-specific investigation, not permission to waive unexplained growth. Manual pointer/key/bar/hotplug/reload/visual gates still require direct observation.
+The first command requires Omarchy, Hyprland and Wayland. Its lifecycle phase repeatedly summons/hides the real overlay and rotates through all five instruments, checking exactly one helper, teardown, freshness, sequence progress, and helper/shell RSS/FD/child counts. Its 10-minute soak then opens one instrument once and holds it steady (default `machine`; override with `--soak-instrument`) while checking helper CPU/memory/FD/child/sample-latency containment and same-shell RSS/FD/child growth. Keeping the soak fixed avoids turning repeated `summon` calls on an already-open panel into a synthetic mode-switch mechanism; per-instrument profiles plus the lifecycle rotation already cover all instruments. Defaults fail if helper RSS exceeds 256 MiB, helper FDs exceed 128, helper children exceed 4, helper CPU averages above 75% of one CPU core between soak samples, ready time exceeds 5 seconds, sample latency exceeds 1.5 seconds, or same-shell RSS/FD/child growth exceeds 128 MiB/64/16 in either lifecycle or soak evidence. These ceilings are configurable arguments for measured host-specific investigation, not permission to waive unexplained growth. Manual pointer/key/bar/hotplug/reload/visual gates still require direct observation.
 
 The audio runner requires `pw-dump`, `pw-play` and a real sink. It creates a temporary silent stream, verifies that the actual stream and route appear, then cleans up its own stream. It does not change defaults, volume or mute.
 

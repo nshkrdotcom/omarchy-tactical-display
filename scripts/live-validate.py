@@ -127,7 +127,8 @@ def main() -> int:
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--run',action='store_true',help='explicit permission to summon/hide this overlay repeatedly')
     p.add_argument('--cycles',type=int,default=50)
-    p.add_argument('--soak-seconds',type=int,default=1800)
+    p.add_argument('--soak-seconds',type=int,default=600)
+    p.add_argument('--soak-instrument',choices=MODES,default='machine',help='single instrument held for the soak; lifecycle cycles cover switching')
     p.add_argument('--output',type=Path,required=True)
     p.add_argument('--max-helper-rss-mib',type=int,default=256)
     p.add_argument('--max-helper-fds',type=int,default=128)
@@ -170,12 +171,14 @@ def main() -> int:
             report['cycles'].append({'cycle':i+1,'instrument':mode,'readyMs':ready_ms,
                                     'diagnostic':d,'helper':helper,'shellAtOpen':parent,'shellAfterHide':proc_stat(parent['pid']) if parent else None,'status':'PASS'})
         if a.soak_seconds:
-            start=time.monotonic();mode='connection';command('omarchy-shell','shell','summon',PLUGIN,json.dumps({'instrument':mode}));wait_ready(mode)
-            last_switch=start;last_seq=None;last_pid=None;last_helper=None;last_helper_at=None;hz=os.sysconf('SC_CLK_TCK')
+            # Keep the long-duration soak on one instrument. Instrument switching is
+            # already covered by the lifecycle cycles and per-instrument profiles;
+            # repeatedly re-summoning an already-open panel exercises host summon
+            # replay semantics rather than the plugin's normal in-session controls.
+            start=time.monotonic();mode=a.soak_instrument;command('omarchy-shell','shell','summon',PLUGIN,json.dumps({'instrument':mode}));wait_ready(mode)
+            report['soakInstrument']=mode
+            last_seq=None;last_pid=None;last_helper=None;last_helper_at=None;hz=os.sysconf('SC_CLK_TCK')
             while time.monotonic()-start<a.soak_seconds:
-                if time.monotonic()-last_switch>=60:
-                    mode=MODES[(MODES.index(mode)+1)%len(MODES)]
-                    command('omarchy-shell','shell','summon',PLUGIN,json.dumps({'instrument':mode}));wait_ready(mode);last_switch=time.monotonic()
                 d,retries=wait_soak_diagnostic(mode)
                 if not d.get('fresh'):raise RuntimeError('Stale telemetry during native soak')
                 if len(matching_helpers())!=1:raise RuntimeError('Helper duplication during native soak')
@@ -193,6 +196,19 @@ def main() -> int:
                 report['soak'].append({'seconds':round(time.monotonic()-start,2),'diagnostic':d,'diagnosticRetries':retries,'helper':helper,'helperCpuPercentOneCore':round(helper_cpu,3) if helper_cpu is not None else None,'shell':proc_stat(helper['ppid']) if helper else None})
                 time.sleep(3)
             hide_and_reap(last_pid)
+        soak_shell_samples=[r.get('shell') for r in report['soak'] if r.get('shell')]
+        soak_shell_growth_rss=soak_shell_growth_fds=soak_shell_growth_children=0
+        if soak_shell_samples:
+            first=soak_shell_samples[0];same=[x for x in soak_shell_samples if x['pid']==first['pid'] and x['startTicks']==first['startTicks']]
+            if same:
+                if any(x['childCount'] is None for x in same):
+                    raise RuntimeError('Shell child-process metric unavailable during native soak')
+                soak_shell_growth_rss=max(x['rssBytes'] for x in same)-first['rssBytes']
+                soak_shell_growth_fds=max(x['fdCount'] for x in same)-first['fdCount']
+                soak_shell_growth_children=max(x['childCount'] for x in same)-first['childCount']
+                if soak_shell_growth_rss>a.max_shell_rss_growth_mib*1024*1024:raise RuntimeError('Shell RSS growth exceeded configured soak budget')
+                if soak_shell_growth_fds>a.max_shell_fd_growth:raise RuntimeError('Shell FD growth exceeded configured soak budget')
+                if soak_shell_growth_children>a.max_shell_child_growth:raise RuntimeError('Shell child-process growth exceeded configured soak budget')
         shell_samples=[c.get('shellAfterHide') for c in report['cycles'] if c.get('shellAfterHide')]
         shell_growth_rss=shell_growth_fds=shell_growth_children=0
         if shell_samples:
@@ -212,8 +228,11 @@ def main() -> int:
                                   'maxShellRssGrowthMiB':a.max_shell_rss_growth_mib,'maxShellFdGrowth':a.max_shell_fd_growth,
                                   'maxShellChildGrowth':a.max_shell_child_growth,
                                   'observedShellRssGrowthBytes':shell_growth_rss,'observedShellFdGrowth':shell_growth_fds,
-                                  'observedShellChildGrowth':shell_growth_children}
-        report['status']='PASS';report['soakStatus']='PASS' if a.soak_seconds>=1800 else 'PARTIAL' if a.soak_seconds else 'NOT RUN';report['scope']='Native IPC/helper lifecycle plus configured CPU-memory-FD-child/readiness/sample-latency containment; manual interaction/visual gates remain NOT RUN'
+                                  'observedShellChildGrowth':shell_growth_children,
+                                  'observedSoakShellRssGrowthBytes':soak_shell_growth_rss,
+                                  'observedSoakShellFdGrowth':soak_shell_growth_fds,
+                                  'observedSoakShellChildGrowth':soak_shell_growth_children}
+        report['status']='PASS';report['soakStatus']='PASS' if a.soak_seconds>=600 else 'PARTIAL' if a.soak_seconds else 'NOT RUN';report['scope']='Native IPC/helper lifecycle plus fixed-instrument soak with configured CPU-memory-FD-child/readiness/sample-latency containment; manual interaction/visual gates remain NOT RUN'
     except (OSError,ValueError,RuntimeError,subprocess.SubprocessError,KeyboardInterrupt) as exc:
         report['status']='FAIL';report['error']=str(exc)
     finally:

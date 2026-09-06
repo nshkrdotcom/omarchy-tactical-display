@@ -27,6 +27,13 @@ FocusScope {
             root.reveal(row)
         }
     }
+    function choosePickerInstrument(index) {
+        if (root.kind !== "picker") return
+        if (index < 0 || index >= Instruments.catalog.length) return
+        root.pickerIndex = index
+        var direct = Instruments.catalog[index]
+        if (direct) root.controller.chooseInstrument(direct.id)
+    }
     function reveal(item) {
         var point=item.mapToItem(sheetContent,0,0)
         if (point.y<scroll.contentY) scroll.contentY=Math.max(0,point.y)
@@ -45,20 +52,25 @@ FocusScope {
             event.accepted = true
             return
         }
+
         if (root.kind !== "picker" || event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) return
-        if (!(event.modifiers & Qt.ShiftModifier) && event.key >= Qt.Key_1 && event.key <= Qt.Key_5) {
-            var direct = Instruments.catalog[event.key - Qt.Key_1]
-            if (direct) root.controller.chooseInstrument(direct.id)
-        } else if (event.key === Qt.Key_Down || event.key === Qt.Key_Right) root.focusPicker(root.pickerIndex + 1)
-        else if (event.key === Qt.Key_Up || event.key === Qt.Key_Left) root.focusPicker(root.pickerIndex - 1)
-        else if (event.key === Qt.Key_Home) root.focusPicker(0)
-        else if (event.key === Qt.Key_End) root.focusPicker(Instruments.catalog.length - 1)
-        else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-            var instrument = Instruments.catalog[root.pickerIndex]
-            if (instrument) root.controller.chooseInstrument(instrument.id)
-        } else return
+
+        if (event.key === Qt.Key_Down || event.key === Qt.Key_Right)
+            root.focusPicker(root.pickerIndex + 1)
+        else if (event.key === Qt.Key_Up || event.key === Qt.Key_Left)
+            root.focusPicker(root.pickerIndex - 1)
+        else if (event.key === Qt.Key_Home)
+            root.focusPicker(0)
+        else if (event.key === Qt.Key_End)
+            root.focusPicker(Instruments.catalog.length - 1)
+        else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
+            root.choosePickerInstrument(root.pickerIndex)
+        else
+            return
+
         event.accepted = true
     }
+
     onVisibleChanged: {
         if (!visible) return
         forceActiveFocus()

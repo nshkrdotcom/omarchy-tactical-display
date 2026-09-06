@@ -18,7 +18,14 @@ FocusScope {
         omittedEdges:field.scene.omittedEdges || 0,layoutDurationMs:field.layoutDurationMs})
     readonly property bool compact: height < 680
     readonly property int margin: Math.max(18,Math.min(44,width*0.023))
+    readonly property int frameInset: 10
     readonly property bool sheetVisible: !!controller.pendingAction || controller.navState.showPicker || controller.navState.showIntro || controller.navState.showHelp || controller.navState.showSettings || controller.navState.showCapabilities
+    readonly property bool pickerSheetVisible:
+        !controller.pendingAction &&
+        !controller.navState.showSettings &&
+        !controller.navState.showCapabilities &&
+        !controller.navState.showHelp &&
+        (controller.navState.showPicker || controller.navState.showIntro)
     readonly property var lenses: Lenses.controls(controller.navState.instrument,controller.navState,controller.effectiveSettings)
     readonly property var hoverEntity: controller.view.allNodes.filter(n => n.key === controller.hoveredKey)[0] || null
     readonly property string liveState: controller.navState.frozen ? "FROZEN " + (controller.displayFrame.wallTime ? new Date(controller.displayFrame.wallTime*1000).toLocaleTimeString() : "") : controller.telemetry ? controller.telemetry.statusText : "ACQUIRING"
@@ -30,17 +37,71 @@ FocusScope {
     function focusField() { controlsFocus=false; fieldFocusTarget.forceActiveFocus() }
     function focusControls() { controlsFocus=true; searchButton.forceActiveFocus() }
     function copySelection() { if (controller.selected) Quickshell.clipboardText=Inspection.clipboard(controller.selected,controller.currentDetail,controller.effectiveSettings.privacy,controller.displayFrame) }
+
     Keys.priority: Keys.BeforeItem
     Keys.onPressed: event => {
-        if (event.key===Qt.Key_F6 && !sheetVisible) { if(controlsFocus) focusField(); else focusControls(); event.accepted=true; return }
-        if (!sheetVisible && !searchInput.activeFocus && !controlsFocus && event.key === Qt.Key_C && !(event.modifiers & (Qt.ControlModifier|Qt.AltModifier|Qt.MetaModifier))) { copySelection(); event.accepted=true; return }
-        controller.handleKey(event,searchInput.activeFocus,sheetVisible||controlsFocus)
+        if (event.key === Qt.Key_F6 && !sheetVisible) {
+            if (controlsFocus) focusField()
+            else focusControls()
+            event.accepted = true
+            return
+        }
+
+        // Modal instrument selection belongs to the fullscreen shell keyboard
+        // router. This path is independent of whichever picker child owns focus.
+        if (pickerSheetVisible &&
+            !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier | Qt.ShiftModifier)) &&
+            event.key >= Qt.Key_1 && event.key <= Qt.Key_5) {
+            var direct = Instruments.catalog[event.key - Qt.Key_1]
+            if (direct) controller.chooseInstrument(direct.id)
+            event.accepted = true
+            return
+        }
+
+        if (!sheetVisible &&
+            !searchInput.activeFocus &&
+            !controlsFocus &&
+            event.key === Qt.Key_C &&
+            !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier))) {
+            copySelection()
+            event.accepted = true
+            return
+        }
+
+        controller.handleKey(
+            event,
+            searchInput.activeFocus,
+            sheetVisible || controlsFocus
+        )
     }
     Rectangle {
         anchors.fill: parent
         color: root.theme.colors.background
         // A quiet desktop remains visible, but labels sit on contrast-normalized planes.
         opacity: root.controller.effectiveSettings.privacy ? 1 : 0.91
+    }
+
+    // A deliberate monitor-space frame makes the overlay read as one bounded
+    // instrument surface instead of allowing underlying desktop geometry to
+    // masquerade as part of Tactical Display.
+    Rectangle {
+        id: viewportFrame
+        z: 10
+        anchors.fill: parent
+        anchors.margins: root.frameInset
+        color: "transparent"
+        border.color: root.theme.colors.line
+        border.width: 1
+        opacity: 0.9
+    }
+    Rectangle {
+        id: frameAccent
+        z: 11
+        x: root.frameInset
+        y: root.frameInset
+        width: Math.min(72,Math.max(44,root.width*0.055))
+        height: 2
+        color: root.theme.colors.accent
     }
     Rectangle { x: root.margin-8; y: root.margin-8; width: root.width-2*root.margin+16; height: worldArea.y+8; color: root.theme.colors.background }
     Rectangle { x: root.margin-8; y: root.margin+worldArea.y+worldArea.height+4; width: root.width-2*root.margin+16; height: root.height-y; color: root.theme.colors.background }

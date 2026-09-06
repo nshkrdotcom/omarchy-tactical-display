@@ -99,18 +99,45 @@ class QmlContractTests(unittest.TestCase):
         self.assertLess(shell.index('id: field'), shell.index('id: densityStatus'))
         self.assertIn('ESC close  /  BACKSPACE back', shell)
 
+    def test_shell_has_explicit_outer_viewport_frame(self):
+        shell = (ROOT / 'core/TacticalDisplayShell.qml').read_text()
+        for token in (
+            'readonly property int frameInset: 10',
+            'id: viewportFrame',
+            'anchors.margins: root.frameInset',
+            'border.color: root.theme.colors.line',
+            'border.width: 1',
+            'id: frameAccent',
+        ):
+            self.assertIn(token, shell)
+
     def test_picker_has_explicit_keyboard_navigation(self):
         sheet = (ROOT / 'core/CommandSheet.qml').read_text()
-        for token in ('property int pickerIndex', 'id: instrumentRepeater',
-                      'instrumentRepeater.itemAt(root.pickerIndex)',
-                      'event.key === Qt.Key_Down', 'event.key === Qt.Key_Up',
-                      'event.key >= Qt.Key_1 && event.key <= Qt.Key_5',
-                      'event.key === Qt.Key_Return || event.key === Qt.Key_Enter',
-                      'root.controller.chooseInstrument(instrument.id)'):
+        shell = (ROOT / 'core/TacticalDisplayShell.qml').read_text()
+
+        for token in (
+            'property int pickerIndex',
+            'id: instrumentRepeater',
+            'instrumentRepeater.itemAt(root.pickerIndex)',
+            'function choosePickerInstrument(index)',
+            'event.key === Qt.Key_Down',
+            'event.key === Qt.Key_Up',
+            'event.key === Qt.Key_Return || event.key === Qt.Key_Enter',
+        ):
             self.assertIn(token, sheet)
-        self.assertIn('event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)', sheet)
-        self.assertIn('Qt.callLater(function() { root.focusPicker(root.currentInstrumentIndex()) })', sheet)
-        self.assertNotIn('row.button', sheet)
+
+        for token in (
+            'readonly property bool pickerSheetVisible:',
+            'if (pickerSheetVisible &&',
+            'event.key >= Qt.Key_1 && event.key <= Qt.Key_5',
+            'var direct = Instruments.catalog[event.key - Qt.Key_1]',
+            'controller.chooseInstrument(direct.id)',
+        ):
+            self.assertIn(token, shell)
+
+        self.assertNotIn('handlePickerDigit', sheet)
+        self.assertNotIn('context: Qt.WindowShortcut', sheet)
+        self.assertNotIn('sequence: "5"', sheet)
 
     def test_overlay_shortcuts_yield_to_editors_sheets_and_command_modifiers(self):
         shell = (ROOT / 'core/TacticalDisplayShell.qml').read_text()
@@ -128,7 +155,7 @@ class QmlContractTests(unittest.TestCase):
         self.assertIn('function handleSearchKey(event)', nav)
         self.assertIn('Qt.ShiftModifier)) return', nav)
         self.assertNotIn('navState.showPicker && event.key >= Qt.Key_1', nav)
-        self.assertIn('var direct = Instruments.catalog[event.key - Qt.Key_1]', sheet)
+        self.assertIn('function choosePickerInstrument(index)', sheet)
 
     def test_all_command_sheets_handle_backspace_before_picker_gating(self):
         sheet = (ROOT / 'core/CommandSheet.qml').read_text()

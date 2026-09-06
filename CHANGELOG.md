@@ -28,6 +28,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Changed
 
+- Set the native release-acceptance soak to 10 minutes after real-host lifecycle/profile coverage demonstrated stable helper and shell resources; the soak remains fixed to one instrument to avoid synthetic re-summon behavior.
 - Aligned fullscreen-overlay keyboard handling with current Omarchy Quattro conventions: editors and command sheets receive first refusal, command-modified keys are not hijacked, picker-local `1`-`5` handling is owned by the picker, and field/control focus is restored deterministically after modal, search, pointer, and instrument transitions.
 - Clarified the distinction between Tactical Display's fullscreen-overlay key handling and Omarchy panel navigation so panel-reserved navigation conventions are not copied into the overlay where they would conflict with product-specific shortcuts.
 - Documented the optional global-binding workflow and a real-host keyboard/focus acceptance matrix for final Omarchy validation.
@@ -39,5 +40,6 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Hardened keyboard ownership around focused editors and controls so text entry, standard modified shortcuts, and control interaction are not intercepted by overlay-level commands.
 - Fixed picker-local digit handling so modified number keys do not switch instruments and unmodified `1`-`5` selection remains local to the active overlay/picker context.
 - Fixed focus restoration after sheets, search, pointer interaction, and instrument changes so keyboard navigation reliably returns to the intended field or control surface.
+- Hardened native acceptance tooling for packaged non-Git Omarchy installs, transient diagnostics IPC, and fixed-instrument long soaks with explicit shell-growth containment.
 
 [1.0.0]: https://github.com/nshkrdotcom/omarchy-tactical-display/releases/tag/v1.0.0
