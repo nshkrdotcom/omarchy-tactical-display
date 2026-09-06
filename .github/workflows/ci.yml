@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*'
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  source:
+    name: Source suite / Python ${{ matrix.python-version }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version:
+          - '3.12'
+          - '3.13'
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Show toolchain
+        run: |
+          python3 --version
+          node --version
+          git --version
+
+      - name: Run repository validation
+        run: bash scripts/validate.sh
+
+      - name: Check patch whitespace
+        run: git diff --check
+
+      - name: Record hosted-runner scope
+        if: always()
+        run: |
+          {
+            echo '### CI scope'
+            echo
+            echo 'Hosted CI runs the portable Python/Node/source/release checks.'
+            echo 'Native Omarchy/Quickshell/Hyprland/Wayland validation remains a real-workstation release gate.'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  release-trust:
+    name: Exact-tag release trust
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Check out tagged commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Verify immutable release tag
+        run: python3 scripts/release-gate.py --expect-tag "$GITHUB_REF_NAME"

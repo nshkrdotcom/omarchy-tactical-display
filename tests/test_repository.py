@@ -19,7 +19,6 @@ class RepositoryCompletenessTests(unittest.TestCase):
             "docs/TESTING.md",
             "docs/UPSTREAM-CONTRACT.md",
             "docs/VISUAL-DESIGN.md",
-            "HANDOFF.md",
             "scripts/release-gate.py",
         ]
         missing = [path for path in required if not (ROOT / path).is_file()]

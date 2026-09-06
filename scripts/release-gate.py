@@ -18,7 +18,7 @@ def git(*args: str) -> str:
 def source_checks() -> list[str]:
     errors: list[str] = []
     required = ['README.md', 'LICENSE', 'manifest.json', 'Overlay.qml', 'BarWidget.qml',
-                'docs/SECURITY-PRIVACY.md', 'docs/TESTING.md', 'HANDOFF.md']
+                'docs/SECURITY-PRIVACY.md', 'docs/TESTING.md']
     for relative in required:
         if not (ROOT / relative).is_file():
             errors.append('missing ' + relative)

@@ -102,6 +102,6 @@ The audio runner requires `pw-dump`, `pw-play` and a real sink. It creates a tem
 python3 scripts/profile.py --instrument all --samples 40 --interval 0.75 --output /tmp/tactical-profile.json
 ```
 
-This measures backend collection/transport overhead, current/high-water RSS, FD and child counts, adaptive throttle/duty cycle and cardinalities, not QML/GPU frame performance. If the kernel does not expose the procfs direct-child metric, profiling reports `childCount.available=false` instead of crashing; the native lifecycle gate is stricter and fails if it cannot enforce its configured child-process ceilings. Profile each instrument at the responsive target on the real workstation as specified in HANDOFF.md. Keep profiles, logs and screenshots outside the watched plugin tree.
+This measures backend collection/transport overhead, current/high-water RSS, FD and child counts, adaptive throttle/duty cycle and cardinalities, not QML/GPU frame performance. If the kernel does not expose the procfs direct-child metric, profiling reports `childCount.available=false` instead of crashing; the native lifecycle gate is stricter and fails if it cannot enforce its configured child-process ceilings. Profile each instrument at the responsive target on the real workstation. Keep profiles, logs and screenshots outside the watched plugin tree.
 
 Classify results as PASS (executed), FAIL (executed and failed), PARTIAL (state the exact subset), or NOT RUN (environment unavailable). Missing native tooling is never a successful native test.
