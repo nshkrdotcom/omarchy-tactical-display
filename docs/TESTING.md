@@ -53,6 +53,12 @@ node scripts/render-fixtures.js --out /tmp/tactical-fixtures
 
 The generated SVG matrix is developer evidence, not Qt/Wayland screenshots. Read `VISUAL-DESIGN.md` for the native visual matrix. Never feed fixtures to the production backend or present fixture output as live telemetry.
 
+## Native bar-panel geometry acceptance
+
+Open Tactical Display by clicking its actual bar widget. The resulting surface must use Omarchy `Panel`/`KeyboardPanel` geometry rather than a full-output `PanelWindow`: the top bar remains visible and interactive, the panel stays inside the host-computed monitor/bar/gap bounds, and smaller outputs clamp rather than clip. On the current 1280x800 scale-1 reference host with a 26px top bar, `gaps_in = 5`, `gaps_out = 10`, and a 2px Hyprland border, approximately x=10..1270 and y=36..790 is a useful diagnostic baseline; the shell-reported geometry is authoritative if Omarchy style tokens change.
+
+Verify left-click toggle, right-click picker, outside-click dismissal, Escape, and switching between bar popouts. The bar path must not reintroduce full-output centering or generic `PanelKeyCatcher` key semantics; Tactical Display keeps its own keyboard router inside the native `KeyboardPanel`.
+
 ## Keyboard and focus acceptance
 
 Source-level tests protect the shortcut ownership rules, but keyboard focus is compositor/Qt state and must also be exercised on the real Omarchy session. First inspect effective global bindings, then summon the overlay:
@@ -78,7 +84,7 @@ Observe all of the following directly:
 - The overlay owns keyboard focus immediately after summon and bare `1-5` switch instruments; `Shift+1-5` and `Ctrl`/`Alt`/`Super`-modified digits do not trigger instrument switching.
 - Search gives the editor normal text behavior. `Ctrl+A/C/V`, cursor/editing keys, and modified result-navigation keys are not consumed by the overlay; unmodified `Up`/`Down` traverse results and `Enter` focuses the current result.
 - `F6` moves into native controls. `Tab`/`Shift+Tab`, `Enter`, and `Space` operate controls without firing field shortcuts. Mouse-click a focusable control and verify the same suppression occurs even without first pressing `F6`; the next `F6`, a field click, or a completed instrument transition restores field shortcuts.
-- The instrument picker owns unmodified arrows, `Home`/`End`, `Enter`, and `Backspace`; while the picker is visible, the fullscreen shell routes bare `1-5` directly to instrument selection so child focus cannot swallow them. Command-modified digits are not intercepted.
+- The instrument picker owns unmodified arrows, `Home`/`End`, `Enter`, and `Backspace`; while the picker is visible, the Tactical surface routes bare `1-5` directly to instrument selection so child focus cannot swallow them. Command-modified digits are not intercepted.
 - `Escape` dismisses the overlay in one stroke from field navigation, search, the picker, settings/help/capabilities, and focused controls.
 - Pointer selection after control focus and reopening after a hide/summon cycle never leaves the overlay in a dead or stale keyboard-focus state.
 - `make bindings` only prints Lua. If testing the optional hold binding, review collisions first, add the block manually, reload Hyprland, and verify both `Super+F11` press and the matching F11 release; `omarchy-shell shell hide nshkr.tactical-display` remains the recovery command.

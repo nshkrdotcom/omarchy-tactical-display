@@ -24,6 +24,9 @@ LINT="$(command -v qmllint || true)"
 [[ -n "$LINT" || ! -x /usr/lib/qt6/bin/qmllint ]] || LINT=/usr/lib/qt6/bin/qmllint
 if [[ -n "$LINT" && -n ${OMARCHY_PATH:-} && -d "$OMARCHY_PATH/shell" ]]; then
   qml=(
+    BarWidget.qml
+    Overlay.qml
+    Panel.qml
     core/CommandSheet.qml
     core/Configuration.qml
     core/InspectionPanel.qml

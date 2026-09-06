@@ -10,6 +10,7 @@ class QmlContractTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.overlay = (ROOT / 'Overlay.qml').read_text()
+        cls.panel = (ROOT / 'Panel.qml').read_text()
         cls.qml_text = '\n'.join(path.read_text() for path in ROOT.rglob('*.qml'))
 
     def test_entry_point_is_hosted_item(self):
@@ -42,6 +43,7 @@ class QmlContractTests(unittest.TestCase):
         for name in ('connection', 'processTopology', 'machineAnatomy', 'storageFlow', 'audioRouting'):
             self.assertIn('function '+name+'(', model)
         self.assertIn('TacticalDisplayShell', self.overlay)
+        self.assertIn('TacticalDisplayShell', self.panel)
         self.assertIn('Line width indicates socket count', model)
 
     def test_native_bar_uses_host_and_has_no_telemetry(self):
@@ -50,8 +52,38 @@ class QmlContractTests(unittest.TestCase):
         self.assertIn('Ui.WidgetButton', bar)
         self.assertIn('Qt.RightButton', bar)
         self.assertIn('vertical', bar)
+        self.assertIn('source: Qt.resolvedUrl("Panel.qml")', bar)
+        self.assertIn('panelLoader.item.anchorItem = button', bar)
+        self.assertIn('panelLoader.item.hostWidget = root', bar)
+        self.assertIn('Qt.resolvedUrl("scripts/telemetry.py")', bar)
+        self.assertIn('panelLoader.item.pluginDir', bar)
+        self.assertNotIn('bar.shell.toggle', bar)
+        self.assertNotIn('omarchy-shell', bar)
+        self.assertNotIn('Process {', bar)
         self.assertNotIn('Timer {', bar)
-        self.assertNotIn('telemetry.py', bar)
+        self.assertNotIn('Telemetry {', bar)
+        self.assertNotIn('command: ["/usr/bin/python3"', bar)
+
+    def test_bar_click_uses_native_omarchy_panel_geometry(self):
+        panel = self.panel
+        for token in (
+            'Panel {',
+            'manageIpc: false',
+            'KeyboardPanel {',
+            'anchorItem: root.anchorItem',
+            'owner: root.hostWidget || root',
+            'bar: root.bar',
+            'focusTarget: displayShell',
+            'centerOnBar: true',
+            'contentWidth: panel.fittedContentWidth(Style.space(1280))',
+            'contentHeight: panel.cappedContentHeight(Style.space(840))',
+            'TacticalDisplayShell {',
+        ):
+            self.assertIn(token, panel)
+        self.assertNotIn('PanelWindow {', panel)
+        self.assertNotIn('WlrLayershell', panel)
+        self.assertNotIn('PanelKeyCatcher', panel)
+        self.assertNotIn('Style.space(48)', panel)
 
     def test_no_infinite_or_decorative_render_loop(self):
         self.assertNotIn('Animation.Infinite', self.qml_text)
@@ -102,7 +134,8 @@ class QmlContractTests(unittest.TestCase):
     def test_shell_has_explicit_outer_viewport_frame(self):
         shell = (ROOT / 'core/TacticalDisplayShell.qml').read_text()
         for token in (
-            'readonly property int frameInset: 10',
+            'readonly property int margin: Math.max(10,Math.min(20,width*0.012))',
+            'readonly property int frameInset: 4',
             'id: viewportFrame',
             'anchors.margins: root.frameInset',
             'border.color: root.theme.colors.accent',

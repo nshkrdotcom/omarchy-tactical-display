@@ -12,6 +12,7 @@ class RepositoryCompletenessTests(unittest.TestCase):
             "LICENSE",
             "manifest.json",
             "Makefile",
+            "Panel.qml",
             "docs/ARCHITECTURE.md",
             "docs/CONFIGURATION.md",
             "docs/DATA-MODEL.md",

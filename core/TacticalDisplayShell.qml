@@ -17,8 +17,8 @@ FocusScope {
         labels:field.scene.labels.length,omittedNodes:field.hiddenCount,
         omittedEdges:field.scene.omittedEdges || 0,layoutDurationMs:field.layoutDurationMs})
     readonly property bool compact: height < 680
-    readonly property int margin: Math.max(18,Math.min(44,width*0.023))
-    readonly property int frameInset: 10
+    readonly property int margin: Math.max(10,Math.min(20,width*0.012))
+    readonly property int frameInset: 4
     readonly property bool sheetVisible: !!controller.pendingAction || controller.navState.showPicker || controller.navState.showIntro || controller.navState.showHelp || controller.navState.showSettings || controller.navState.showCapabilities
     readonly property bool pickerSheetVisible:
         !controller.pendingAction &&
@@ -47,7 +47,7 @@ FocusScope {
             return
         }
 
-        // Modal instrument selection belongs to the fullscreen shell keyboard
+        // Modal instrument selection belongs to the Tactical surface keyboard
         // router. This path is independent of whichever picker child owns focus.
         if (pickerSheetVisible &&
             !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier | Qt.ShiftModifier)) &&
@@ -100,7 +100,7 @@ FocusScope {
         id: content
         anchors.fill: parent
         anchors.margins: root.margin
-        spacing: root.compact ? 8 : 12
+        spacing: root.compact ? 6 : 10
         enabled: !root.sheetVisible
         RowLayout {
             Layout.fillWidth: true

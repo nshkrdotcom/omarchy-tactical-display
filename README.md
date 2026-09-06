@@ -6,7 +6,7 @@
 
 **Real-time system instrumentation and visual diagnostics for Omarchy Quattro.**
 
-Tactical Display is a fullscreen, keyboard-first observability overlay for Omarchy. It presents the machine as relationships rather than a conventional meter dashboard: network connections, process ancestry, machine pressure, storage topology, and PipeWire routing share one visual and inspection model.
+Tactical Display is a keyboard-first observability surface for Omarchy. Clicking its bar widget opens a native Omarchy panel that respects the bar edge, monitor gaps, and shell clamping; compositor/shell invocation retains the fullscreen overlay path. Network connections, process ancestry, machine pressure, storage topology, and PipeWire routing share one visual and inspection model.
 
 ![Tactical Display preview](preview.png)
 
@@ -26,7 +26,7 @@ Switch between instruments at any time by pressing `1` through `5`:
 
 ### Highlights
 
-- **Ephemeral collection**: the telemetry helper runs only while the overlay is open and is terminated on dismissal.
+- **Ephemeral collection**: the telemetry helper runs only while a Tactical Display surface is open and is terminated on dismissal.
 - **Screen-share privacy mode**: `P` masks process/network identity and uses an opaque presentation.
 - **Snapshot freeze**: `Space` captures a stable inspection snapshot while collection continues behind it.
 - **Theme adaptive**: colors and contrast derive from the active Omarchy theme.
@@ -75,8 +75,8 @@ omarchy bar put nshkr.tactical-display
 omarchy bar move nshkr.tactical-display --section right --index 0
 ```
 
-- **Left-click**: toggle Tactical Display on the focused monitor.
-- **Right-click**: open the instrument picker.
+- **Left-click**: toggle the native Tactical Display panel from the bar.
+- **Right-click**: open the instrument picker in that native panel.
 
 ### Update
 
@@ -98,7 +98,7 @@ Tactical Display does not install a privileged helper, persistent host service, 
 
 ### Keyboard Controls and Navigation
 
-Tactical Display is a fullscreen Omarchy `overlay`, so its bare-key map is active only while the overlay owns keyboard focus. It does **not** reuse Omarchy's bar-panel key catcher: panel conventions reserve keys such as `H/J/K/L`, `Space`, and `X` for generic list movement/actions, while those keys have deliberate instrument semantics here. Omarchy's global `Super+Ctrl+1-9` bar-panel bindings are separate from Tactical Display's local bare `1-5`.
+Tactical Display keeps the same product-specific bare-key map in both its native bar panel and fullscreen overlay. The bar panel uses Omarchy `KeyboardPanel` for geometry and focus ownership but deliberately does **not** reuse the generic `PanelKeyCatcher`, whose `H/J/K/L`, `Space`, and `X` conventions conflict with Tactical Display instrument semantics. Omarchy's global `Super+Ctrl+1-9` bindings remain separate from Tactical Display's local bare `1-5`.
 
 | Key | Action |
 |---|---|
@@ -122,7 +122,7 @@ Tactical Display is a fullscreen Omarchy `overlay`, so its bare-key map is activ
 
 Instrument-specific controls are listed in the in-app legend. Notable shortcuts include `V` for connection/storage/audio lenses, `E` for process emphasis, `T` for machine trends, and `L`/`O` for Connection Field listener/loopback visibility.
 
-When Search has focus, normal text-editing behavior wins: modifier chords such as `Ctrl+A/C/V` are left to the `TextField`, while unmodified `Up`/`Down` move through results and `Enter` focuses the result. `F6` moves keyboard focus into the native controls, where `Tab`/`Shift+Tab`, `Enter`, and `Space` follow normal Qt control behavior; `F6` returns to field navigation. Mouse-focused controls are detected from Qt's active focus item so field shortcuts cannot leak through a focused button. `Escape` remains the one-stroke emergency dismissal from every overlay state.
+When Search has focus, normal text-editing behavior wins: modifier chords such as `Ctrl+A/C/V` are left to the `TextField`, while unmodified `Up`/`Down` move through results and `Enter` focuses the result. `F6` moves keyboard focus into the native controls, where `Tab`/`Shift+Tab`, `Enter`, and `Space` follow normal Qt control behavior; `F6` returns to field navigation. Mouse-focused controls are detected from Qt's active focus item so field shortcuts cannot leak through a focused button. `Escape` remains the one-stroke emergency dismissal from every Tactical Display state.
 
 ### Optional global bindings
 

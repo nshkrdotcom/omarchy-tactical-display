@@ -5,7 +5,10 @@
 ```text
 Quattro shell (one existing long-running Quickshell)
   |-- BarWidget.qml -> native bar styling/lifecycle; no sampler
-  `-- Overlay.qml (hosted Item, open/close, selected monitor)
+  |     `-- Panel.qml -> Omarchy Panel / KeyboardPanel geometry
+  |           |-- Configuration + NavigationController + one Telemetry helper
+  |           `-- TacticalDisplayShell
+  `-- Overlay.qml (hosted Item, shell/compositor fullscreen route)
         |-- Configuration (native inline settings, unknown-field-preserving)
         |-- NavigationController (selection/context/history/freeze)
         |-- Telemetry (one supervised Process, NDJSON validation)
@@ -13,8 +16,9 @@ Quattro shell (one existing long-running Quickshell)
         |           `-- td_telemetry/{processes,network,machine,storage,audio,hardware,enrichment}
         |                 -> normalized entities + capability map + bounded events
         `-- selected PanelWindow / TacticalDisplayShell
-              -> InstrumentModel -> Layout -> Draw / Field
-              -> InspectionPanel, CommandSheet, Trend
+
+TacticalDisplayShell -> InstrumentModel -> Layout -> Draw / Field
+                     -> InspectionPanel, CommandSheet, Trend
 ```
 
 `model/` separates configuration, typed navigation intent, telemetry validation, instrument transformations and inspection. `visual/` owns stable layout, collision/label budgets, palette contrast and rendering. No instrument delegate reads Linux files or spawns commands. One shared renderer has **five distinct semantic model/layout/drawing paths**, not five labels over a generic percentage dashboard.
@@ -43,7 +47,7 @@ The principal helper is launched as `/usr/bin/python3` with Quickshell `clearEnv
 
 ## Lifecycle and monitors
 
-The summon screen is captured from the payload or focused Hyprland monitor; otherwise the first current screen is used. Only that PanelWindow is visible and keyboard-exclusive. Other monitors remain unobstructed. On hot-unplug, select the current focused/first remaining screen; with no screens, hide the session. Backend ownership sits above Variants, so changing screens cannot multiply samplers. The host's openPanelIds guards a stale queued cold-summon payload after a hide.
+Bar-button presentation is owned by Omarchy `Panel` + `KeyboardPanel`: the clicked bar item supplies the anchor, and the host computes available monitor space, bar-edge offset, outer gaps, and clamping. The Tactical surface therefore does not cover the bar when opened from the bar. The shell/compositor summon route remains fullscreen: its screen is captured from the payload or focused Hyprland monitor; otherwise the first current screen is used. Only that fullscreen PanelWindow is visible and keyboard-exclusive. Other monitors remain unobstructed. On hot-unplug, select the current focused/first remaining screen; with no screens, hide the session. Backend ownership sits above Variants, so changing screens cannot multiply samplers. The host's openPanelIds guards a stale queued cold-summon payload after a hide.
 
 Process restart is capped at six retries with exponential backoff up to 30 seconds; three good frames reset the consecutive-failure count. Freshness uses an active-only clock. Transport validation rejects malformed/deep/oversized objects before they reach rendering. Open normal state never needs a new Quickshell or external graphics engine.
 

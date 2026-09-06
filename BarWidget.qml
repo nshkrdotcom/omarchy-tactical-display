@@ -1,5 +1,4 @@
 import QtQuick
-import Quickshell.Io
 import qs.Ui as Ui
 import qs.Commons
 import "model/Settings.js" as Settings
@@ -8,22 +7,65 @@ import "model/InstrumentModel.js" as Instruments
 Ui.BarWidget {
     id: root
     moduleName: "nshkr.tactical-display"
+    property string omarchyPath: ""
+    property var shell: null
+    property var manifest: null
+    readonly property string sourceDir: String(Qt.resolvedUrl("scripts/telemetry.py")).replace(/^file:\/\//, "").replace(/\/scripts\/telemetry\.py$/, "")
+
     readonly property var preferences: Settings.normalize(settings).values
-    property string invocationError: ""
+    readonly property bool opened: panelLoader.item ? panelLoader.item.opened === true : false
+    readonly property bool popoutSwitchClosing: panelLoader.item ? panelLoader.item.popoutSwitchClosing === true : false
+
+    function open(payloadJson) {
+        if (panelLoader.item) panelLoader.item.open(payloadJson || "{}")
+    }
+
+    function close() {
+        if (panelLoader.item) panelLoader.item.close()
+    }
+
+    function toggle(payloadJson) {
+        if (root.opened) root.close()
+        else root.open(payloadJson || "{}")
+    }
+
+    function closeForPopoutSwitch() {
+        if (panelLoader.item) panelLoader.item.closeForPopoutSwitch()
+    }
+
+    function invoke(picker) {
+        var payload = JSON.stringify({mode:"toggle",picker:picker})
+        if (picker) root.open(payload)
+        else root.toggle(payload)
+    }
+
+    function injectPanel() {
+        if (!panelLoader.item) return
+        panelLoader.item.bar = root.bar
+        panelLoader.item.anchorItem = button
+        panelLoader.item.hostWidget = root
+        panelLoader.item.pluginDir = root.manifest && root.manifest.__sourceDir ? String(root.manifest.__sourceDir) : root.sourceDir
+        panelLoader.item.settings = root.settings
+    }
+
     implicitWidth: button.implicitWidth
     implicitHeight: button.implicitHeight
-    function invoke(picker) {
-        var payload=JSON.stringify({mode:"toggle",picker:picker})
-        // The native bar exposes its owning shell. Prefer its in-process lifecycle route.
-        if (bar && bar.shell && typeof bar.shell.toggle === "function") {
-            if (picker) bar.shell.summon(moduleName,payload)
-            else bar.shell.toggle(moduleName,payload)
-            return
+
+    onBarChanged: injectPanel()
+    onManifestChanged: injectPanel()
+    onSettingsChanged: injectPanel()
+
+    Loader {
+        id: panelLoader
+        active: true
+        source: Qt.resolvedUrl("Panel.qml")
+        visible: false
+        onLoaded: {
+            root.injectPanel()
+            Qt.callLater(root.injectPanel)
         }
-        if (ipc.running) return
-        ipc.command=["omarchy-shell","shell",picker?"summon":"toggle",moduleName,payload]
-        ipc.running=true
     }
+
     Ui.WidgetButton {
         id: button
         anchors.fill: parent
@@ -48,7 +90,7 @@ Ui.BarWidget {
             !root.vertical && root.preferences.barMode === "label"
                 ? "Tactical"
                 : "TD"
-        tooltipText: "Tactical Display · "+Instruments.info(root.preferences.lastInstrument).name+"\nLeft-click: Toggle overlay · Right-click: Choose instrument"+(root.invocationError?"\n"+root.invocationError:"")
+        tooltipText: "Tactical Display · "+Instruments.info(root.preferences.lastInstrument).name+"\nLeft-click: Toggle panel · Right-click: Choose instrument"
         Ui.OpticalGlyph {
             visible: button.compactMode
 
@@ -68,11 +110,6 @@ Ui.BarWidget {
                     : button.foreground
         }
 
-        onPressed: button => root.invoke(button===Qt.RightButton)
-    }
-    Process {
-        id: ipc
-        running: false
-        onExited: exitCode => root.invocationError = exitCode===0 ? "" : "Shell invocation failed; run plugin doctor."
+        onPressed: mouseButton => root.invoke(mouseButton === Qt.RightButton)
     }
 }

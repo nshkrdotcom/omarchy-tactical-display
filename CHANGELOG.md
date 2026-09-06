@@ -24,10 +24,12 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Absolute process/socket work deadlines, near-linear generic-runtime ancestry grouping, multi-rate socket ownership, and adaptive sampler backoff under sustained collection load.
 - Valid-frame/staleness helper supervision with bounded restart recovery, fixed system-Python launch, cleared/reduced principal-helper environment, SIGTERM-to-SIGKILL teardown escalation, true sliding-window command flood protection, and stricter frontend collection validation.
 - Isolated optional MMDB lookups, bounded PipeWire dump size, NVIDIA vendor-tool fallback-only polling, and reduced subprocess environment/PATH authority.
-- Adversarial resource tests, stronger native RSS/FD/child/CPU/latency lifecycle gates, release-tag verification, and a workstation completion handoff.
+- Adversarial resource tests, stronger native RSS/FD/child/CPU/latency lifecycle gates, and release-tag verification.
 
 ### Changed
 
+- Routed bar-button presentation through Omarchy's native `Panel`/`KeyboardPanel` geometry, matching BEAM Deck so the top bar remains exposed and the host owns monitor gaps, bar-edge offsets, and clamping; shell/compositor invocation retains the fullscreen overlay route.
+- Reduced Tactical Display inner margins and frame inset while preserving the continuous 2px theme-accent viewport frame.
 - Set the native release-acceptance soak to 10 minutes after real-host lifecycle/profile coverage demonstrated stable helper and shell resources; the soak remains fixed to one instrument to avoid synthetic re-summon behavior.
 - Aligned fullscreen-overlay keyboard handling with current Omarchy Quattro conventions: editors and command sheets receive first refusal, command-modified keys are not hijacked, bare `1`-`5` picker selection is routed by the fullscreen shell while the picker is visible, and field/control focus is restored deterministically after modal, search, pointer, and instrument transitions.
 - Clarified the distinction between Tactical Display's fullscreen-overlay key handling and Omarchy panel navigation so panel-reserved navigation conventions are not copied into the overlay where they would conflict with product-specific shortcuts.
