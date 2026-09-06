@@ -1,6 +1,9 @@
 """Security and observation semantics for actual delivery/operator paths."""
+import importlib.util
 from pathlib import Path
+import shutil
 import subprocess
+import tempfile
 import unittest
 
 from td_telemetry.audio import normalize_graph
@@ -12,6 +15,73 @@ ROOT=Path(__file__).resolve().parents[1]
 
 class DeliveryTests(unittest.TestCase):
 
+
+    def test_live_validation_tolerates_packaged_non_git_omarchy_path(self):
+        path = ROOT / 'scripts/live-validate.py'
+        spec = importlib.util.spec_from_file_location('tactical_live_validate', path)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        with tempfile.TemporaryDirectory() as td:
+            self.assertEqual(
+                module.omarchy_git_metadata(td),
+                {'omarchyPath': td},
+            )
+
+    def test_live_validation_records_git_metadata_when_available(self):
+        if not shutil.which('git'):
+            self.skipTest('git unavailable')
+
+        path = ROOT / 'scripts/live-validate.py'
+        spec = importlib.util.spec_from_file_location('tactical_live_validate_git', path)
+        self.assertIsNotNone(spec)
+        self.assertIsNotNone(spec.loader)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+
+        with tempfile.TemporaryDirectory() as td:
+            subprocess.run(
+                ['git', 'init', '-q', td],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            probe = Path(td) / 'probe'
+            probe.write_text('real git metadata test\n')
+
+            subprocess.run(
+                ['git', '-C', td, 'add', 'probe'],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            subprocess.run(
+                [
+                    'git', '-C', td,
+                    '-c', 'user.name=Tactical Display Tests',
+                    '-c', 'user.email=tactical@example.invalid',
+                    'commit', '-q', '-m', 'probe',
+                ],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+            metadata = module.omarchy_git_metadata(td)
+
+        self.assertEqual(metadata['omarchyPath'], td)
+        self.assertTrue(metadata['omarchyCommit'])
+        self.assertTrue(metadata['omarchyVersion'])
+
+    def test_native_soak_retries_transient_diagnostic_rejections(self):
+        text = (ROOT / 'scripts/live-validate.py').read_text()
+        self.assertIn('def wait_soak_diagnostic(mode: str, timeout: float=1.0)', text)
+        self.assertIn('d,retries=wait_soak_diagnostic(mode)', text)
+        self.assertIn("'diagnosticRetries':retries", text)
 
     def test_audio_pid_inherits_client_instance_identity(self):
         raw=[{'id':10,'type':'PipeWire:Interface:Client','info':{'props':{'application.process.id':'42','object.serial':100}}},

@@ -263,8 +263,10 @@ class RealProviderTests(unittest.TestCase):
             frame = engine.sample()
             self.assertEqual(frame['capabilities']['audio']['status'], 'inactive')
             self.assertEqual(frame['schemaVersion'], 3)
-            key = next(p['key'] for p in frame['processes'] if p['pid'] == os.getpid())
+            key = next(p['key'] for p in engine.full['processes'] if p['pid'] == os.getpid())
             self.assertFalse(engine.inspect(key)['ended'])
+            if not any(p['pid'] == os.getpid() for p in frame['processes']):
+                self.assertGreater(frame['limits']['omitted'].get('processes', 0), 0)
             engine.configure({'instrument': 'audio', 'profile': 'efficient'})
             frame = engine.sample()
             self.assertEqual(frame['capabilities']['network']['status'], 'inactive')

@@ -25,6 +25,36 @@ def command(*argv: str, timeout: float=8) -> str:
     return result
 
 
+def omarchy_git_metadata(path: str | None) -> dict[str, str]:
+    if not path:
+        return {}
+
+    metadata = {'omarchyPath': path}
+    git = shutil.which('git')
+    if not git:
+        return metadata
+
+    try:
+        probe = subprocess.run(
+            (git, '-C', path, 'rev-parse', '--is-inside-work-tree'),
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+        if probe.returncode != 0 or probe.stdout.strip() != 'true':
+            return metadata
+
+        commit = command(git, '-C', path, 'rev-parse', 'HEAD')
+        version = command(git, '-C', path, 'describe', '--tags', '--always')
+    except (OSError, RuntimeError, subprocess.SubprocessError):
+        return metadata
+
+    metadata['omarchyCommit'] = commit
+    metadata['omarchyVersion'] = version
+    return metadata
+
+
 def diagnostic() -> dict:
     raw=command('omarchy-shell','shell','call',PLUGIN,'diagnostics','{}')
     value=json.loads(raw)
@@ -43,6 +73,23 @@ def wait_ready(mode: str, timeout: float=10) -> dict:
         except (ValueError,RuntimeError,subprocess.SubprocessError) as exc:last=str(exc)
         time.sleep(.15)
     raise RuntimeError('Native overlay did not become ready: '+last)
+
+
+def wait_soak_diagnostic(mode: str, timeout: float=1.0) -> tuple[dict, int]:
+    until=time.monotonic()+timeout
+    last='not loaded'
+    retries=0
+    while time.monotonic()<until:
+        try:
+            d=diagnostic()
+            if d.get('opened') and d.get('fresh') and d.get('helperPid',0)>0 and d.get('instrument')==mode:
+                return d,retries
+            last=str({k:d.get(k) for k in ('opened','fresh','ready','status','instrument')})
+        except (ValueError,RuntimeError,subprocess.SubprocessError) as exc:
+            last=str(exc)
+        retries+=1
+        time.sleep(.05)
+    raise RuntimeError('Native diagnostics unavailable during soak after bounded retry: '+last)
 
 
 def proc_stat(pid: int) -> dict | None:
@@ -104,10 +151,7 @@ def main() -> int:
     try:
         report['manifestValidation']=command('omarchy','plugin','validate',str(ROOT))
         report['hyprlandVersion']=command('hyprctl','version')
-        omarchy=os.environ.get('OMARCHY_PATH')
-        if omarchy:
-            report['omarchyCommit']=command('git','-C',omarchy,'rev-parse','HEAD')
-            report['omarchyVersion']=command('git','-C',omarchy,'describe','--tags','--always')
+        report.update(omarchy_git_metadata(os.environ.get('OMARCHY_PATH')))
         # Close an existing session only after --run was explicitly requested.
         command('omarchy-shell','shell','hide',PLUGIN)
         for i in range(a.cycles):
@@ -132,7 +176,7 @@ def main() -> int:
                 if time.monotonic()-last_switch>=60:
                     mode=MODES[(MODES.index(mode)+1)%len(MODES)]
                     command('omarchy-shell','shell','summon',PLUGIN,json.dumps({'instrument':mode}));wait_ready(mode);last_switch=time.monotonic()
-                d=diagnostic()
+                d,retries=wait_soak_diagnostic(mode)
                 if not d.get('fresh'):raise RuntimeError('Stale telemetry during native soak')
                 if len(matching_helpers())!=1:raise RuntimeError('Helper duplication during native soak')
                 if d['helperPid']==last_pid and d['sequence']==last_seq:raise RuntimeError('Telemetry sequence stopped advancing')
@@ -146,7 +190,7 @@ def main() -> int:
                 if helper and helper['childCount']>a.max_helper_children:raise RuntimeError('Helper child count exceeded configured budget during soak')
                 if helper_cpu is not None and helper_cpu>a.max_helper_cpu_percent:raise RuntimeError('Helper CPU exceeded configured one-core budget during soak')
                 if isinstance(d.get('sampleDurationMs'),(int,float)) and d['sampleDurationMs']>a.max_sample_ms:raise RuntimeError('Helper sample latency exceeded configured budget during soak')
-                report['soak'].append({'seconds':round(time.monotonic()-start,2),'diagnostic':d,'helper':helper,'helperCpuPercentOneCore':round(helper_cpu,3) if helper_cpu is not None else None,'shell':proc_stat(helper['ppid']) if helper else None})
+                report['soak'].append({'seconds':round(time.monotonic()-start,2),'diagnostic':d,'diagnosticRetries':retries,'helper':helper,'helperCpuPercentOneCore':round(helper_cpu,3) if helper_cpu is not None else None,'shell':proc_stat(helper['ppid']) if helper else None})
                 time.sleep(3)
             hide_and_reap(last_pid)
         shell_samples=[c.get('shellAfterHide') for c in report['cycles'] if c.get('shellAfterHide')]

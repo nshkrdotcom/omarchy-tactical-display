@@ -117,9 +117,10 @@ class QmlContractTests(unittest.TestCase):
         nav = (ROOT / 'core/NavigationController.qml').read_text()
         sheet = (ROOT / 'core/CommandSheet.qml').read_text()
         self.assertIn('readonly property var focusedItem: Window.activeFocusItem', shell)
-        self.assertIn('function focusField() { controlsFocus=false; root.forceActiveFocus() }', shell)
+        self.assertIn('Item { id: fieldFocusTarget; width: 0; height: 0; activeFocusOnTab: false }', shell)
+        self.assertIn('function focusField() { controlsFocus=false; fieldFocusTarget.forceActiveFocus() }', shell)
         self.assertIn('function focusControls() { controlsFocus=true; searchButton.forceActiveFocus() }', shell)
-        self.assertIn('controlsFocus = !!focusedItem && focusedItem !== root', shell)
+        self.assertIn('controlsFocus = !!focusedItem && focusedItem !== fieldFocusTarget', shell)
         self.assertIn('Keys.onPressed: event => root.controller.handleSearchKey(event)', shell)
         self.assertIn('Component.onCompleted: Qt.callLater(function() { root.focusField() })', shell)
         self.assertIn('if (editing || panelActive) return', nav)
@@ -128,6 +129,14 @@ class QmlContractTests(unittest.TestCase):
         self.assertIn('Qt.ShiftModifier)) return', nav)
         self.assertNotIn('navState.showPicker && event.key >= Qt.Key_1', nav)
         self.assertIn('var direct = Instruments.catalog[event.key - Qt.Key_1]', sheet)
+
+    def test_all_command_sheets_handle_backspace_before_picker_gating(self):
+        sheet = (ROOT / 'core/CommandSheet.qml').read_text()
+        backspace = 'if (event.key === Qt.Key_Backspace && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)))'
+        picker_gate = 'if (root.kind !== "picker" || event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) return'
+        self.assertIn(backspace, sheet)
+        self.assertIn(picker_gate, sheet)
+        self.assertLess(sheet.index(backspace), sheet.index(picker_gate))
 
     def test_focus_reset_paths_clear_control_mode(self):
         shell = (ROOT / 'core/TacticalDisplayShell.qml').read_text()

@@ -40,6 +40,11 @@ FocusScope {
     focus: visible
     Keys.priority: Keys.BeforeItem
     Keys.onPressed: event => {
+        if (event.key === Qt.Key_Backspace && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier))) {
+            root.controller.back()
+            event.accepted = true
+            return
+        }
         if (root.kind !== "picker" || event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) return
         if (!(event.modifiers & Qt.ShiftModifier) && event.key >= Qt.Key_1 && event.key <= Qt.Key_5) {
             var direct = Instruments.catalog[event.key - Qt.Key_1]
@@ -51,8 +56,7 @@ FocusScope {
         else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
             var instrument = Instruments.catalog[root.pickerIndex]
             if (instrument) root.controller.chooseInstrument(instrument.id)
-        } else if (event.key === Qt.Key_Backspace) root.controller.back()
-        else return
+        } else return
         event.accepted = true
     }
     onVisibleChanged: {

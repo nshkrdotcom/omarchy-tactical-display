@@ -26,7 +26,8 @@ FocusScope {
     property bool controlsFocus: false
     readonly property var focusedItem: Window.activeFocusItem
     focus: true
-    function focusField() { controlsFocus=false; root.forceActiveFocus() }
+    Item { id: fieldFocusTarget; width: 0; height: 0; activeFocusOnTab: false }
+    function focusField() { controlsFocus=false; fieldFocusTarget.forceActiveFocus() }
     function focusControls() { controlsFocus=true; searchButton.forceActiveFocus() }
     function copySelection() { if (controller.selected) Quickshell.clipboardText=Inspection.clipboard(controller.selected,controller.currentDetail,controller.effectiveSettings.privacy,controller.displayFrame) }
     Keys.priority: Keys.BeforeItem
@@ -241,7 +242,7 @@ FocusScope {
     Connections { target: root.controller; function onInstrumentSelected(instrument) { modeTransition.restart(); root.focusField() } function onSearchRequested() { searchInput.forceActiveFocus() } }
     onFocusedItemChanged: {
         if (sheetVisible || searchInput.activeFocus) return
-        controlsFocus = !!focusedItem && focusedItem !== root
+        controlsFocus = !!focusedItem && focusedItem !== fieldFocusTarget
     }
     onSheetVisibleChanged: if (!sheetVisible) Qt.callLater(function() { if (!root.sheetVisible && !searchInput.visible) root.focusField() })
     Component.onCompleted: Qt.callLater(function() { root.focusField() })
