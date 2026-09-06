@@ -105,8 +105,8 @@ class QmlContractTests(unittest.TestCase):
             'readonly property int frameInset: 10',
             'id: viewportFrame',
             'anchors.margins: root.frameInset',
-            'border.color: root.theme.colors.line',
-            'border.width: 1',
+            'border.color: root.theme.colors.accent',
+            'border.width: 2',
         ):
             self.assertIn(token, shell)
 

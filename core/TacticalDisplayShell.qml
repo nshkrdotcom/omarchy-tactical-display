@@ -90,8 +90,8 @@ FocusScope {
         anchors.fill: parent
         anchors.margins: root.frameInset
         color: "transparent"
-        border.color: root.theme.colors.line
-        border.width: 1
+        border.color: root.theme.colors.accent
+        border.width: 2
         opacity: 0.9
     }
     Rectangle { x: root.margin-8; y: root.margin-8; width: root.width-2*root.margin+16; height: worldArea.y+8; color: root.theme.colors.background }
