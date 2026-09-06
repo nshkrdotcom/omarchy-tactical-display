@@ -28,6 +28,8 @@ class DeliveryTests(unittest.TestCase):
         text=(ROOT/'scripts/live-validate.py').read_text()
         self.assertIn('WAYLAND_DISPLAY',text);self.assertIn('return 77',text)
         self.assertIn('diagnostics',text);self.assertIn('matching_helpers()',text)
+        for term in ('--max-helper-cpu-percent','--max-helper-children','--max-ready-ms','helperCpuPercentOneCore','childCount'):
+            self.assertIn(term,text)
         self.assertNotIn('fixtures/scenarios',text)
         self.assertIn('release = true',(ROOT/'scripts/print-bindings.sh').read_text())
         self.assertIn('ignore_mods = true',(ROOT/'scripts/print-bindings.sh').read_text())

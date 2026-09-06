@@ -4,6 +4,7 @@ import ipaddress
 from pathlib import Path
 import socket
 import sys
+import time
 from typing import Any
 from .common import read_text
 
@@ -68,12 +69,13 @@ def parse_proc_net_line(line: str, proto: str, family: int) -> dict[str, Any] | 
         return None
 
 
-def read_socket_table(path: str | Path, proto: str, family: int, limit: int = 20000) -> list[dict[str, Any]]:
+def read_socket_table(path: str | Path, proto: str, family: int, limit: int = 20000,
+                      deadline: float | None = None) -> list[dict[str, Any]]:
     rows = []
     with open(path, encoding='ascii', errors='replace') as f:
         next(f, '')
-        for line in f:
-            if len(rows) >= limit:
+        for index, line in enumerate(f):
+            if len(rows) >= limit or (deadline is not None and index % 32 == 0 and time.monotonic() >= deadline):
                 break
             item = parse_proc_net_line(line[:4096], proto, family)
             if item is not None and (proto != 'tcp' or item['state'] in VISIBLE_TCP_STATES):

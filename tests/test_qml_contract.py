@@ -67,6 +67,23 @@ class QmlContractTests(unittest.TestCase):
         self.assertIn('frame.requestId !== root.freezeRequestId', nav)
         self.assertIn('freezeTimeout', nav)
 
+    def test_navigation_scopes_instance_topology_instead_of_streaming_all_instances(self):
+        nav = (ROOT / 'core' / 'NavigationController.qml').read_text()
+        telemetry = (ROOT / 'core' / 'Telemetry.qml').read_text()
+        self.assertIn('setInstanceGroups', nav)
+        self.assertIn('onNavStateChanged', nav)
+        self.assertIn('function setInstanceGroups', telemetry)
+        self.assertIn('op:"scope"', telemetry)
+        self.assertIn('scope-result', telemetry)
+
+    def test_helper_health_requires_valid_frames_and_uses_fixed_interpreter(self):
+        telemetry = (ROOT / 'core/Telemetry.qml').read_text()
+        for token in ('property bool started', 'firstFrameWatch', 'healthWatch', 'restartBackend', '/usr/bin/python3',
+                      'clearEnvironment: true', 'PYTHONNOUSERSITE', 'terminationWatch', 'sampler.signal(15)', 'sampler.signal(9)'):
+            self.assertIn(token, telemetry)
+        self.assertIn('root.ready = true', telemetry)
+        self.assertGreater(telemetry.index('root.ready = true'), telemetry.index('Protocol.validateSnapshot(frame)'))
+
 
     def test_overlay_escape_is_immediate_and_density_status_is_outside_field(self):
         shell = (ROOT / 'core/TacticalDisplayShell.qml').read_text()

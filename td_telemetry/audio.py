@@ -130,7 +130,7 @@ class AudioProvider:
         try:
             if not shutil.which('pw-dump'):
                 raise FileNotFoundError('pw-dump is not installed (Arch package: pipewire)')
-            raw = json.loads(run_command(['pw-dump'], timeout=1.2))
+            raw = json.loads(run_command(['pw-dump'], timeout=1.2, max_bytes=2 * 1024 * 1024))
             core = next((o for o in raw if str(o.get('type', '')).endswith(':Core')), {})
             info = core.get('info') or {}
             props = info.get('props') or {}

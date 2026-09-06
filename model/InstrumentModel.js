@@ -60,10 +60,12 @@ function indexed(rows) {var out={};array(rows).forEach(function(r){if(r && r.key
 function connection(frame,state,settings) {
     var data=obj(frame.network),nodes=[],edges=[],filter=obj(state.filters), expanded=array(state.expanded), processes=array(data.processes),
         instances=array(data.instances), instanceLinks=array(data.instanceLinks), links=array(data.links), listeners=array(data.listeners);
-    var useInstances={};expanded.forEach(function(k){useInstances[k]=true;});
+    var scoped=Array.isArray(data.instanceGroups)?data.instanceGroups:null,available={};
+    if(scoped)scoped.forEach(function(k){available[k]=true;});
+    var useInstances={};expanded.forEach(function(k){if(scoped===null||available[k])useInstances[k]=true;});
     if(state.context && state.context.processKey) {
         var instance=instances.filter(function(n){return n.key===state.context.processKey;})[0];
-        if(instance)useInstances[instance.groupKey]=true;
+        if(instance && (scoped===null||available[instance.groupKey]))useInstances[instance.groupKey]=true;
     }
     function allowLink(l) {
         if(!settings.loopback && l.kind==='loopback')return false;

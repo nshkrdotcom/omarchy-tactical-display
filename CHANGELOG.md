@@ -6,7 +6,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ## [Unreleased]
 
-## [1.0.0] - 2026-09-05
+## [1.0.0] - 2026-09-06
 
 ### Added
 
@@ -22,6 +22,11 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 - Snapshot Freeze (`Space`) to pause live updates for steady inspection and detail copying.
 - Full keyboard navigation, entity search (`/`), isolation mode (`F`), and application expansion (`X`).
 - Automatic contrast and color normalization adapting to the active Omarchy theme.
+- Resource-hardened telemetry internals with a canonical socket-detail store, key-only relationships, demand-scoped per-process network topology (including frozen on-demand expansion), generation-pinned freeze snapshots, and constructive byte-budgeted transport below the 4 MiB protocol ceiling.
+- Absolute process/socket work deadlines, near-linear generic-runtime ancestry grouping, multi-rate socket ownership, and adaptive sampler backoff under sustained collection load.
+- Valid-frame/staleness helper supervision with bounded restart recovery, fixed system-Python launch, cleared/reduced principal-helper environment, SIGTERM-to-SIGKILL teardown escalation, true sliding-window command flood protection, and stricter frontend collection validation.
+- Isolated optional MMDB lookups, bounded PipeWire dump size, NVIDIA vendor-tool fallback-only polling, and reduced subprocess environment/PATH authority.
+- Adversarial resource tests, stronger native RSS/FD/child/CPU/latency lifecycle gates, release-tag verification, and a workstation completion handoff.
 
 [Unreleased]: https://github.com/nshkrdotcom/omarchy-tactical-display/compare/v1.0.0...HEAD
 [1.0.0]: https://github.com/nshkrdotcom/omarchy-tactical-display/releases/tag/v1.0.0

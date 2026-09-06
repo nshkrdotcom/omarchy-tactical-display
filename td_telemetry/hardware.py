@@ -32,7 +32,8 @@ class HardwareProvider:
                 self.rows['gpus'].append({'key': stable_id('gpu', str(path.resolve())), 'name': path.parent.name,
                                          'utilizationPercent': util, 'memoryUsedBytes': used, 'memoryTotalBytes': total,
                                          'temperatureC': None, 'source': 'DRM sysfs counters'})
-        if shutil.which('nvidia-smi'):
+        # Vendor tooling is a fallback only; avoid process/power overhead when DRM sysfs already satisfies GPU observation.
+        if not self.rows['gpus'] and shutil.which('nvidia-smi'):
             try:
                 raw = run_command(['nvidia-smi', '--query-gpu=uuid,name,utilization.gpu,memory.used,memory.total,temperature.gpu', '--format=csv,noheader,nounits'], timeout=0.8, max_bytes=65536).decode(errors='replace')
                 for row in csv.reader(io.StringIO(raw)):

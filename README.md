@@ -31,6 +31,7 @@ Switch between instruments at any time by pressing `1` through `5`:
 - **Snapshot freeze**: `Space` captures a stable inspection snapshot while collection continues behind it.
 - **Theme adaptive**: colors and contrast derive from the active Omarchy theme.
 - **Unprivileged and local-first**: core providers read user-accessible `/proc`, sysfs, and local desktop services. No packet capture, privileged daemon, cloud analytics, or required root access.
+- **Resource-contained by design**: collection uses absolute/global work budgets, canonical socket-detail storage, demand-scoped per-process network topology, generation-pinned freeze, constructively bounded transport, adaptive sampling backoff, and supervised helper recovery.
 
 ## Requirements and External Dependencies
 
@@ -127,7 +128,7 @@ See the [Configuration Reference](docs/CONFIGURATION.md) for the complete native
 
 ## Security and Privacy
 
-Tactical Display is local-first and unprivileged. Its core providers read user-accessible `/proc`, sysfs, and local desktop services; it does not require packet capture, a privileged daemon, cloud analytics, `sudo`, or `pkexec`. Screen-share privacy mode masks process/network identity in the presentation, while optional DNS and offline-MMDB enrichment remain explicit capabilities.
+Tactical Display is local-first and unprivileged. Its core providers read user-accessible `/proc`, sysfs, and local desktop services; it does not require packet capture, a privileged daemon, cloud analytics, `sudo`, or `pkexec`. Screen-share privacy mode masks process/network identity in the presentation, while optional DNS and offline-MMDB enrichment remain explicit capabilities. Expensive scans, internal detail retention, transport size and helper recovery are bounded so the observer backs off rather than compounding host pressure.
 
 See [Security and Privacy](docs/SECURITY-PRIVACY.md) for the full threat model, data-handling boundaries, and optional-action behavior.
 
@@ -139,6 +140,7 @@ Run the local test and validation suite:
 make test
 bash scripts/doctor.sh
 bash scripts/validate.sh
+python3 scripts/release-gate.py --source-only
 ```
 
 On an Omarchy workstation, run the native release gates as well:

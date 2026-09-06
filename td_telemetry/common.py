@@ -1,7 +1,7 @@
 """Bounded I/O, explicit capability contracts, and monotonic counters."""
 from __future__ import annotations
 
-from collections import OrderedDict
+from collections import OrderedDict, deque
 from dataclasses import asdict, dataclass
 import hashlib
 import json
@@ -9,6 +9,7 @@ import math
 import os
 from pathlib import Path
 import selectors
+import shutil
 import signal
 import subprocess
 import sys
@@ -56,6 +57,48 @@ def number(value: Any) -> float | None:
         return None
 
 
+def proc_child_count(pid: int | None = None, proc: str | Path = '/proc') -> int | None:
+    """Return the kernel-reported direct child count when that procfs metric exists."""
+    pid = os.getpid() if pid is None else int(pid)
+    try:
+        return len((Path(proc) / str(pid) / 'task' / str(pid) / 'children').read_text().split())
+    except (OSError, ValueError):
+        return None
+
+
+@dataclass
+class WorkBudget:
+    """Absolute provider deadline plus an optional row budget.
+
+    Budgets are passed down into nested scans so a child cannot consume a fresh
+    independent timeout after its caller is already late.
+    """
+    deadline: float
+    row_limit: int | None = None
+    used_rows: int = 0
+
+    @classmethod
+    def for_seconds(cls, seconds: float, row_limit: int | None = None) -> "WorkBudget":
+        return cls(time.monotonic() + max(0.0, seconds), row_limit)
+
+    def expired(self) -> bool:
+        return time.monotonic() >= self.deadline
+
+    def remaining_seconds(self) -> float:
+        return max(0.0, self.deadline - time.monotonic())
+
+    def remaining_rows(self) -> int | None:
+        return None if self.row_limit is None else max(0, self.row_limit - self.used_rows)
+
+    def consume(self, count: int = 1) -> bool:
+        if count < 0:
+            raise ValueError('budget consumption must be non-negative')
+        if self.row_limit is not None and self.used_rows + count > self.row_limit:
+            return False
+        self.used_rows += count
+        return not self.expired()
+
+
 @dataclass
 class Capability:
     provider: str
@@ -89,6 +132,23 @@ def failure(cap: Capability, error: Exception, suggestion: str = '') -> None:
     cap.suggestion = suggestion
 
 
+class SlidingWindowLimiter:
+    """Deterministic burst limiter whose budget is independent of pipe read chunking."""
+    def __init__(self, limit: int, seconds: float) -> None:
+        self.limit = max(1, int(limit))
+        self.seconds = max(0.001, float(seconds))
+        self.events: deque[float] = deque()
+
+    def allow(self, now: float | None = None) -> bool:
+        now = time.monotonic() if now is None else now
+        while self.events and now - self.events[0] >= self.seconds:
+            self.events.popleft()
+        if len(self.events) >= self.limit:
+            return False
+        self.events.append(now)
+        return True
+
+
 class CounterRate:
     """Missing baseline/reset is None, never a fabricated zero."""
     def __init__(self, limit: int = 32768) -> None:
@@ -110,11 +170,46 @@ class CounterRate:
                 self.values.pop(key, None)
 
 
+SAFE_ENV_KEYS = (
+    'HOME', 'USER', 'LOGNAME', 'XDG_RUNTIME_DIR', 'DBUS_SESSION_BUS_ADDRESS',
+    'WAYLAND_DISPLAY', 'DISPLAY', 'XDG_SESSION_TYPE', 'PIPEWIRE_REMOTE',
+    'LANG', 'TZ',
+)
+
+
+def command_env() -> dict[str, str]:
+    """Minimal user-session environment for provider commands.
+
+    In particular, Python import injection and dynamic-loader overrides from the
+    ambient desktop session are not forwarded to helper/provider subprocesses.
+    """
+    env = {key: os.environ[key] for key in SAFE_ENV_KEYS if os.environ.get(key)}
+    env['PATH'] = '/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin'
+    env['LC_ALL'] = 'C'
+    env['PYTHONNOUSERSITE'] = '1'
+    return env
+
+
+def resolve_executable(command: str) -> str:
+    if not command or '\x00' in command:
+        raise ValueError('invalid executable')
+    if '/' in command:
+        path = os.path.abspath(command)
+        if not os.path.isfile(path) or not os.access(path, os.X_OK):
+            raise FileNotFoundError(command)
+        return path
+    path = shutil.which(command, path=command_env()['PATH'])
+    if not path:
+        raise FileNotFoundError(command)
+    return path
+
+
 def guarded_argv(argv: list[str]) -> list[str]:
     """Parent-death safety without executing Python in a forked preexec hook."""
     if not argv or any(not isinstance(a, str) or '\x00' in a for a in argv):
         raise ValueError('invalid command argument array')
-    return [sys.executable, '-S', str(Path(__file__).with_name('guardexec.py')), str(os.getpid()), *argv]
+    target = [resolve_executable(argv[0]), *argv[1:]]
+    return [os.path.abspath(sys.executable), '-S', str(Path(__file__).with_name('guardexec.py')), str(os.getpid()), *target]
 
 
 def run_command(argv: list[str], *, timeout: float = 2,
@@ -129,7 +224,7 @@ def run_command(argv: list[str], *, timeout: float = 2,
         raise ValueError('command input exceeds budget')
     proc = subprocess.Popen(guarded_argv(argv), stdin=subprocess.PIPE if input_data is not None else subprocess.DEVNULL,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=True,
-                            env={**os.environ, 'LC_ALL': 'C'})
+                            env=command_env())
     out, err = bytearray(), bytearray()
     deadline = time.monotonic() + timeout
     try:

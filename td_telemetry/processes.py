@@ -33,9 +33,50 @@ def application_unit(cgroup: str) -> str:
     return ''
 
 
-def assign_groups(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    by_pid = {p['pid']: p for p in rows}
+def assign_groups(rows: list[dict[str, Any]], deadline: float | None = None) -> list[dict[str, Any]]:
+    if deadline is not None and time.monotonic() >= deadline:
+        return []
+    bounded: list[dict[str, Any]] = []
     for p in rows:
+        if deadline is not None and time.monotonic() >= deadline:
+            break
+        bounded.append(p)
+    rows = bounded
+    by_pid = {p['pid']: p for p in rows}
+    # Runtime-tree ancestry is shared by descendants. Path compression avoids
+    # walking the same deep Python/Node/BEAM chain once per process (O(N^2)).
+    runtime_roots: dict[str, dict[str, Any]] = {}
+
+    def runtime_root(process: dict[str, Any], exe: str) -> dict[str, Any]:
+        cached = runtime_roots.get(process['key'])
+        if cached is not None:
+            return cached
+        path: list[dict[str, Any]] = []
+        ancestor = process
+        hops = 0
+        while True:
+            if deadline is not None and hops % 32 == 0 and time.monotonic() >= deadline:
+                raise TimeoutError('process grouping deadline exceeded')
+            hops += 1
+            cached = runtime_roots.get(ancestor['key'])
+            if cached is not None:
+                root = cached
+                break
+            path.append(ancestor)
+            parent = by_pid.get(ancestor['ppid'])
+            if (not parent or parent.get('executable') != exe or parent.get('uid') != process.get('uid')
+                    or parent['startTicks'] > ancestor['startTicks']):
+                root = ancestor
+                break
+            ancestor = parent
+        for item in path:
+            runtime_roots[item['key']] = root
+        return root
+
+    grouped: list[dict[str, Any]] = []
+    for p in rows:
+        if deadline is not None and time.monotonic() >= deadline:
+            break
         exe = p.get('executable', '')
         name = Path(exe).name or p['name']
         unit = application_unit(p.get('cgroup', ''))
@@ -45,14 +86,10 @@ def assign_groups(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         elif exe and not generic:
             identity, provenance = ('executable', p.get('uid'), exe), 'same executable and UID (grouping)'
         elif generic:
-            ancestor = p
-            seen = set()
-            while ancestor['ppid'] in by_pid and ancestor['ppid'] not in seen:
-                parent = by_pid[ancestor['ppid']]
-                if parent.get('executable') != exe or parent.get('uid') != p.get('uid') or parent['startTicks'] > ancestor['startTicks']:
-                    break
-                seen.add(parent['pid'])
-                ancestor = parent
+            try:
+                ancestor = runtime_root(p, exe)
+            except TimeoutError:
+                break
             identity, provenance = ('runtime-tree', exe, ancestor['key']), 'runtime ancestry (not name-only)'
         else:
             identity, provenance = ('instance', p['key']), 'process instance; insufficient grouping identity'
@@ -62,7 +99,12 @@ def assign_groups(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
         parent = by_pid.get(p['ppid'])
         # A sampled parent younger than its child cannot be the original parent.
         p['parentKey'] = parent['key'] if parent and parent['startTicks'] <= p['startTicks'] else None
-    return rows
+        grouped.append(p)
+    live_keys = {p['key'] for p in grouped}
+    for p in grouped:
+        if p.get('parentKey') not in live_keys:
+            p['parentKey'] = None
+    return grouped
 
 
 class ProcessProvider:
@@ -84,10 +126,24 @@ class ProcessProvider:
         io_denied = 0
         truncated = 0
         try:
-            pids = sorted(int(p.name) for p in self.proc.iterdir() if p.name.isdigit())
+            deadline = started + self.budget
+            grouping_reserve = min(0.075, max(0.01, self.budget * 0.22))
+            scan_deadline = max(started, deadline - grouping_reserve)
+            pids: list[int] = []
+            discovery_truncated = False
+            for entry in self.proc.iterdir():
+                if time.monotonic() >= scan_deadline:
+                    discovery_truncated = True
+                    break
+                if entry.name.isdigit():
+                    pids.append(int(entry.name))
+                    if len(pids) >= MAX_PROCESSES * 4:
+                        discovery_truncated = True
+                        break
+            pids.sort()
             for index, pid in enumerate(pids):
-                if len(rows) >= MAX_PROCESSES or time.monotonic() - started > self.budget:
-                    truncated = len(pids) - index
+                if len(rows) >= MAX_PROCESSES or time.monotonic() >= scan_deadline:
+                    truncated = max(1 if discovery_truncated else 0, len(pids) - index)
                     break
                 path = self.proc / str(pid)
                 try:
@@ -132,13 +188,22 @@ class ProcessProvider:
                     continue  # normal process exit race, not a provider outage
                 except (PermissionError, ValueError, IndexError, OSError):
                     inaccessible += 1
+            if discovery_truncated and not truncated:
+                truncated = 1
             if inaccessible or truncated or io_denied:
                 cap.status = 'partial'
                 cap.complete = not (inaccessible or truncated)
                 cap.errorKind = 'budget' if truncated else 'permission' if inaccessible or io_denied else ''
                 cap.reason = f'{inaccessible} process records inaccessible; {io_denied} I/O records inaccessible; {truncated} outside scan budget'
                 cap.suggestion = 'Missing ownership/I/O is normal under procfs permissions; do not elevate privileges.'
-            assign_groups(rows)
+            before_grouping = len(rows)
+            rows = assign_groups(rows, deadline=deadline)
+            if len(rows) < before_grouping:
+                truncated += before_grouping - len(rows)
+                cap.status = 'partial'
+                cap.complete = False
+                cap.errorKind = 'budget'
+                cap.reason = (cap.reason + '; ' if cap.reason else '') + f'{before_grouping - len(rows)} outside grouping deadline'
         except (OSError, ValueError) as error:
             failure(cap, error, 'Mount readable procfs for this user/namespace.')
         live = {p['key'] for p in rows}

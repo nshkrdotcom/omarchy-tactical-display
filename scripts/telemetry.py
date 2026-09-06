@@ -18,7 +18,7 @@ if str(ROOT) not in sys.path:
 from td_telemetry.engine import INSTRUMENTS, PROFILES, TelemetryEngine
 from td_telemetry.network import SocketSampler, build_network_model
 from td_telemetry.procfs import parse_ipv4, parse_ipv6, parse_proc_net_line, classify_socket
-from td_telemetry.common import MAX_FRAME, clean
+from td_telemetry.common import MAX_FRAME, SlidingWindowLimiter, clean
 
 
 class StopHelper(BaseException):
@@ -59,6 +59,7 @@ def main() -> int:
     selector = selectors.DefaultSelector()
     buffer = bytearray()
     dropping = False
+    command_limiter = SlidingWindowLimiter(32, 1.0)
     try:
         if args.once:
             emit(engine.sample())
@@ -76,7 +77,6 @@ def main() -> int:
                     # Host closing stdin is a lifecycle close, not permission to orphan.
                     return 0
                 buffer.extend(chunk)
-                commands = 0
                 while b'\n' in buffer:
                     line, _, remainder = buffer.partition(b'\n')
                     buffer = bytearray(remainder)
@@ -84,17 +84,15 @@ def main() -> int:
                         dropping = False
                         emit({'type': 'error', 'message': 'Command exceeded 64 KiB; discarded.'})
                         continue
-                    commands += 1
-                    if commands > 32:
-                        emit({'type': 'error', 'message': 'Command burst exceeded 32 records; remainder discarded.'})
-                        buffer.clear()
-                        break
+                    if not command_limiter.allow():
+                        emit({'type': 'error', 'message': 'Command rate exceeded 32 records/second; discarded.'})
+                        continue
                     try:
                         command = json.loads(line)
                         answer = engine.command(command)
                         if answer is not None:
                             emit(answer)
-                        if isinstance(command, dict) and command.get('op') == 'configure':
+                        if isinstance(command, dict) and command.get('op') in ('configure', 'scope'):
                             next_at = time.monotonic()
                     except (ValueError, TypeError, OSError, RuntimeError, TimeoutError) as error:
                         emit({'type': 'error', 'message': clean(error, 240)})

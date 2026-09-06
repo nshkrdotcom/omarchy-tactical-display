@@ -11,6 +11,7 @@ import statistics
 import sys
 import time
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
+from td_telemetry.common import proc_child_count
 from td_telemetry.engine import TelemetryEngine, INSTRUMENTS
 
 
@@ -27,23 +28,30 @@ def main() -> int:
     a=p.parse_args()
     if not 2<=a.samples<=100000 or not .25<=a.interval<=10:p.error('samples 2..100000; interval 0.25..10 seconds')
     e=TelemetryEngine(a.instrument,interval=a.interval)
-    durations=[];sizes=[];rss=[];current_rss=[];counts=[];caps={};start=time.monotonic();cpu=time.process_time()
+    durations=[];sizes=[];rss=[];current_rss=[];fds=[];children=[];counts=[];throttles=[];duties=[];caps={};start=time.monotonic();cpu=time.process_time()
     try:
         for i in range(a.samples):
             sample_start=time.monotonic();f=e.sample()
             durations.append(float(f['sampleDurationMs']));sizes.append(len(json.dumps(f,separators=(',',':')).encode()))
             rss.append(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss)
             current_rss.append(int(Path('/proc/self/statm').read_text().split()[1])*os.sysconf('SC_PAGE_SIZE')//1024)
+            fds.append(sum(1 for _ in Path('/proc/self/fd').iterdir()))
+            children.append(proc_child_count())
+            throttles.append(int(f.get('limits',{}).get('adaptiveThrottleLevel',0)));duties.append(float(f.get('limits',{}).get('samplerDutyCycle',0)))
             counts.append({'processes':len(f['processes']),'relationships':len(f['network']['links']),'audioNodes':len(f['audio']['nodes']),'mounts':len(f['storage']['mounts'])})
             caps={k:{'status':v['status'],'source':v['source']} for k,v in f['capabilities'].items()}
             if i+1<a.samples:time.sleep(max(0,a.interval-(time.monotonic()-sample_start)))
         elapsed=time.monotonic()-start
+        child_values=[value for value in children if value is not None]
         report={'status':'PASS','scope':'Real Linux backend only; not shell/Qt/GPU-frame performance','platform':platform.platform(),
                 'python':platform.python_version(),'cpuCount':os.cpu_count(),'instrument':a.instrument,'samples':a.samples,'intervalSeconds':a.interval,
                 'elapsedSeconds':round(elapsed,3),'samplerCpuPercentOneCore':round((time.process_time()-cpu)/elapsed*100,3),
                 'sampleMs':{'p50':round(statistics.median(durations),3),'p95':round(percentile(durations,.95),3),'max':round(max(durations),3)},
                 'maxFrameBytes':max(sizes),'residentKiB':{'first':current_rss[0],'last':current_rss[-1],'max':max(current_rss)},
-                'rssHighWaterKiB':{'first':rss[0],'last':rss[-1],'max':max(rss)},'firstCounts':counts[0],'lastCounts':counts[-1],'capabilities':caps}
+                'rssHighWaterKiB':{'first':rss[0],'last':rss[-1],'max':max(rss)},'fdCount':{'first':fds[0],'last':fds[-1],'max':max(fds)},
+                'childCount':{'available':len(child_values)==len(children),'first':children[0],'last':children[-1],'max':max(child_values) if child_values else None},
+                'adaptiveThrottle':{'maxLevel':max(throttles),'maxDutyCycle':round(max(duties),3)},
+                'firstCounts':counts[0],'lastCounts':counts[-1],'capabilities':caps}
     finally:e.close()
     raw=json.dumps(report,indent=2)+'\n'
     if a.output:

@@ -42,11 +42,12 @@ function validateSnapshot(frame) {
     if(!isObject(frame)||frame.schemaVersion!==3||frame.type!=='snapshot')return 'Unsupported snapshot schema';
     if(!finite(frame.monotonic)||!finite(frame.wallTime))return 'Invalid timestamps';
     if(!isObject(frame.capabilities)||!isObject(frame.system)||!validRows(frame.processes,24000)||!validRows(frame.groups,24000))return 'Malformed process/resource collections';
-    var sections={network:['processes','remotes','links','listeners'],storage:['devices','mounts','links','contributors'],audio:['nodes','devices','links'],hardware:['gpus','thermals','fans']};
+    var sections={network:['processes','remotes','links','listeners'],storage:['devices','mounts','links','contributors'],audio:['nodes','devices','clients','ports','links'],hardware:['gpus','thermals','fans']};
     var error='';
     Object.keys(sections).forEach(function(s){if(!isObject(frame[s])){error='Missing '+s;return;}sections[s].forEach(function(k){if(!validRows(frame[s][k],48000))error='Malformed '+s+'.'+k;});});
     if(error)return error;
     if(frame.network.instances!==undefined&&!validRows(frame.network.instances,24000)||frame.network.instanceLinks!==undefined&&!validRows(frame.network.instanceLinks,48000))return 'Malformed instance layer';
+    if(frame.network.instanceGroups!==undefined&&(!Array.isArray(frame.network.instanceGroups)||frame.network.instanceGroups.length>64||frame.network.instanceGroups.some(function(k){return typeof k!=='string'||k.length>512;})))return 'Malformed instance scope';
     var providers=Object.keys(frame.capabilities);
     if(providers.length>32||providers.some(function(k){var c=frame.capabilities[k];return !isObject(c)||typeof c.status!=='string'||typeof c.source!=='string';}))return 'Malformed capability map';
     if(!Array.isArray(frame.events)||frame.events.length>2048||!Array.isArray(frame.trend)||frame.trend.length>120)return 'Unbounded temporal state';

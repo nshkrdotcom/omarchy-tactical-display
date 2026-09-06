@@ -103,12 +103,19 @@ test('contrast normalization handles dark, light, invisible accent and saturated
 });
 test('dense raw input still has bounded render complexity',()=>{
  const large=Fixtures.frame('stress'),start=performance.now(),v=view('connection',{},large),layout=L.layout(v,1920,900,{}, {},metrics);
- assert.ok(v.allNodes.length>1000);assert.ok(layout.nodes.length<=160);assert.ok(layout.edges.length<=240);assert.ok(layout.omittedNodes>1000);assert.ok(performance.now()-start<3000);
+ assert.ok(v.allNodes.length>1000);assert.ok(layout.nodes.length<=160);assert.ok(layout.edges.length<=240);assert.ok(layout.omittedNodes>1000);assert.ok(performance.now()-start<750);
 });
 test('normal process trees expose ancestry without forcing a first click',()=>{
  const v=view('processes',{},Fixtures.frame('normal'));
  assert.ok(v.visibleNodes.some(n=>n.kind==='process'));
  assert.ok(v.edges.some(e=>e.kind==='parent'));
+});
+test('pending demand-scoped instance layer keeps aggregate connection visible',()=>{
+ const f=Fixtures.frame('normal'),group=f.network.processes[0];
+ f.network.instances=[];f.network.instanceLinks=[];f.network.instanceGroups=[];
+ const s=N.toggleGroup(N.fresh('connection'),group.key,false),v=M.build(f,s,S.defaults);
+ assert.ok(v.visibleNodes.some(n=>n.key===group.key&&n.kind==='application'));
+ assert.ok(v.edges.some(e=>e.kind==='relationship'&&e.sourceKey===group.key));
 });
 test('connection app focus retains aggregation; expansion is explicit',()=>{
  const f=Fixtures.frame('dense'),s=N.focus(N.fresh('connection'),view('connection',{},f).allNodes.find(n=>n.kind==='application'));

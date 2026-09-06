@@ -10,7 +10,7 @@ Settings live in the existing native Quattro entry for `nshkr.tactical-display`:
 | tdDefaultInstrument | connection | First-run mode. |
 | tdLastInstrument | connection | Remembered mode after selection/explicit invocation. |
 | tdAnimation | normal | reduced, normal, vivid; no infinite animation. |
-| tdRefreshProfile | balanced | efficient, balanced, responsive. |
+| tdRefreshProfile | balanced | efficient, balanced, responsive target cadences (1.5 / 0.75 / 0.35 s). Sustained high sampler duty can temporarily back off the effective cadence; telemetry reports the actual interval/throttle. |
 | tdLoopback / tdListeners | true / true | Visibility, not provider falsification. |
 | tdNaming | local | raw, local, dns. DNS explicitly opts into system-resolver PTR requests. |
 | tdLabels | balanced | minimal, balanced, dense; changes budgets, not text into unreadable sizes. |
@@ -19,7 +19,7 @@ Settings live in the existing native Quattro entry for `nshkr.tactical-display`:
 | tdIntroSeen | false | First-run acknowledgement; help can reopen introduction. |
 | tdAudioActions | false | Explicit opt-in to confirmed mute/default/undo. |
 | tdAliases | {} | At most 512 IP-address -> local name entries. No executable commands. |
-| tdOfflineDb | empty | Explicit local MMDB path; optional Python maxminddb module required. No automatic download. |
+| tdOfflineDb | empty | Explicit local MMDB path; optional Python maxminddb module required. Open/lookup occurs only in a timeout-bounded worker, never the principal helper. No automatic download. |
 
 For a bar-hosted entry, native CLI examples:
 

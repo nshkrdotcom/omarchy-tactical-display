@@ -18,6 +18,7 @@ Primary source references:
 - https://github.com/basecamp/omarchy/blob/v4.0.1/config/hypr/bindings.lua
 - https://github.com/basecamp/omarchy/blob/v4.0.1/default/hypr/bindings/utilities.lua
 - https://github.com/basecamp/omarchy/blob/v4.0.1/default/hypr/bindings/voxtype.lua
+- https://quickshell.org/docs/v0.1.0/types/Quickshell.Io/Process/ (Process `clearEnvironment`, `environment`, `running`, and `signal()` semantics; recheck against the installed Quickshell build)
 
 ## Decisions supported by that source
 
@@ -37,7 +38,8 @@ git -C "$OMARCHY_PATH" describe --tags --always
 git -C "$OMARCHY_PATH" rev-parse HEAD
 quickshell --version
 hyprctl version
+/usr/bin/python3 --version
 omarchy plugin validate ~/.config/omarchy/plugins/nshkr.tactical-display
 ```
 
-Run the installed `qmllint` against the installed Quattro import tree. Compare import-metadata warnings with a first-party widget using the same imports and fix plugin-local warnings rather than globally suppressing them. The source references above establish the integration contract; native validation and direct interaction establish compatibility with the actual workstation.
+Run the installed `qmllint` against the installed Quattro import tree. Confirm the installed Quickshell `Process` exposes `clearEnvironment`, `environment` and `signal(int)`, and exercise the plugin's SIGTERM-to-SIGKILL escalation against a deliberately stuck helper. Compare import-metadata warnings with a first-party widget using the same imports and fix plugin-local warnings rather than globally suppressing them. The source references above establish the integration contract; native validation and direct interaction establish compatibility with the actual workstation.

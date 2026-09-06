@@ -72,6 +72,16 @@ Item {
         next[name] = value
         navState = next
     }
+    function syncTelemetryScope() {
+        if (!telemetry) return
+        var groups = []
+        if (navState.instrument === "connection") {
+            groups = (navState.expanded || []).slice(0,64)
+            var context = navState.context || {}
+            if (context.groupKey && groups.indexOf(context.groupKey) < 0) groups.push(context.groupKey)
+        }
+        telemetry.setInstanceGroups(groups, navState.frozen === true)
+    }
     function chooseInstrument(id) {
         if (id !== navState.instrument && (navState.frozen || freezePending)) {
             if (telemetry) telemetry.freeze(false)
@@ -215,12 +225,18 @@ Item {
             root.setFlag("notice","Snapshot request timed out; resumed live state.")
         }
     }
+    onNavStateChanged: syncTelemetryScope()
+    onTelemetryChanged: syncTelemetryScope()
     onViewChanged: resolveTimer.restart()
     Timer {
         id: resolveTimer
         interval: 0
         onTriggered: {
             if (!root.navState.selectedKey && root.navState.context) {
+                var context = root.navState.context || {}, net = root.displayFrame.network || {}
+                var pendingProcessScope = root.navState.instrument === "connection" && context.processKey && context.groupKey &&
+                    Array.isArray(net.instanceGroups) && net.instanceGroups.indexOf(context.groupKey) < 0
+                if (pendingProcessScope) return
                 var resolved = Navigation.resolveContext(root.navState,root.view.allNodes)
                 if (resolved.selectedKey !== root.navState.selectedKey || resolved.notice !== root.navState.notice) root.navState = resolved
             }
@@ -236,6 +252,9 @@ Item {
             }
         }
         function onDetailReceived(frame) { if (root.selected && frame.key === root.selected.key) root.detailFrame = frame }
+        function onScopeReceived(frame) {
+            if (root.navState.frozen && frame.frozen === true) { root.displayFrame = frame.snapshot; root.detailFrame = null }
+        }
         function onFreezeReceived(frame) {
             if (!root.freezePending || frame.requestId !== root.freezeRequestId) return
             freezeTimeout.stop()

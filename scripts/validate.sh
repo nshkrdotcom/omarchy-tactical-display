@@ -7,6 +7,7 @@ if [[ ${1:-} == --require-native ]]; then REQUIRE_NATIVE=1
 elif [[ $# != 0 ]]; then printf 'Usage: %s [--require-native]\n' "$0" >&2; exit 2; fi
 export PYTHONDONTWRITEBYTECODE=1
 python3 -m unittest discover -s tests -p 'test_*.py' -v
+python3 scripts/release-gate.py --source-only
 if command -v node >/dev/null 2>&1; then node --test --test-reporter=spec tests/js/*.test.js
 else printf 'NOT RUN: Node.js model/layout tests (install nodejs for development).\n'; exit 77; fi
 for script in scripts/*.sh; do bash -n "$script"; done

@@ -93,5 +93,5 @@ def dump_tcp(family: int, limit: int = 20000, deadline: float = 0.2) -> list[dic
                 row = parse_message(payload)
                 if row:
                     rows.append(row)
-                if len(rows) > limit:
-                    raise ValueError('inet_diag socket budget exceeded')
+                if len(rows) >= limit:
+                    return rows
