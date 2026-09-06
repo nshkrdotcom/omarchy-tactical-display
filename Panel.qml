@@ -1,10 +1,10 @@
 import QtQuick
 import qs.Commons
-import qs.Ui
+import qs.Ui as Ui
 import "core"
 import "model/Settings.js" as Settings
 
-Panel {
+Ui.Panel {
     id: root
     moduleName: "nshkr.tactical-display"
     manageIpc: false
@@ -55,7 +55,7 @@ Panel {
         pluginId: root.moduleName
     }
 
-    ThemeAdapter { id: themeAdapter }
+    ThemeAdapter { id: themeAdapter; popupSurface: true }
 
     NavigationController {
         id: navigation
@@ -72,7 +72,7 @@ Panel {
         instrument: navigation.navState.instrument
     }
 
-    KeyboardPanel {
+    Ui.KeyboardPanel {
         id: panel
         anchorItem: root.anchorItem
         owner: root.hostWidget || root
@@ -90,6 +90,8 @@ Panel {
             controller: navigation
             theme: themeAdapter
             active: root.opened
+            nativePanelMode: true
+            showViewportFrame: false
             onStatisticsChanged: root.renderStatistics = displayShell.statistics
             Component.onCompleted: root.renderStatistics = displayShell.statistics
             onNativePanelRequested: id => root.openNativePanel(id)

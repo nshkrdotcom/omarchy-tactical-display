@@ -55,7 +55,7 @@ The generated SVG matrix is developer evidence, not Qt/Wayland screenshots. Read
 
 ## Native bar-panel geometry acceptance
 
-Open Tactical Display by clicking its actual bar widget. The resulting surface must use Omarchy `Panel`/`KeyboardPanel` geometry rather than a full-output `PanelWindow`: the top bar remains visible and interactive, the panel stays inside the host-computed monitor/bar/gap bounds, and smaller outputs clamp rather than clip. On the current 1280x800 scale-1 reference host with a 26px top bar, `gaps_in = 5`, `gaps_out = 10`, and a 2px Hyprland border, approximately x=10..1270 and y=36..790 is a useful diagnostic baseline; the shell-reported geometry is authoritative if Omarchy style tokens change.
+Open Tactical Display by clicking its actual bar widget. The resulting surface must use Omarchy `Panel`/`KeyboardPanel` geometry rather than a full-output `PanelWindow`: the top bar remains visible and interactive, the panel stays inside the host-computed monitor/bar/gap bounds, and smaller outputs clamp rather than clip. The native panel must present exactly one outer frame: Omarchy's own panel border; the Tactical fullscreen viewport frame is disabled on this path. On the current 1280x800 scale-1 reference host with a 26px top bar, `gaps_in = 5`, `gaps_out = 10`, and a 2px Hyprland border, approximately x=10..1270 and y=36..790 is a useful diagnostic baseline; the shell-reported geometry is authoritative if Omarchy style tokens change.
 
 Verify left-click toggle, right-click picker, outside-click dismissal, Escape, and switching between bar popouts. The bar path must not reintroduce full-output centering or generic `PanelKeyCatcher` key semantics; Tactical Display keeps its own keyboard router inside the native `KeyboardPanel`.
 

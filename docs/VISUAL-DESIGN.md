@@ -29,3 +29,7 @@ Generated files under `/tmp/tactical-fixtures` are representative shared-rendere
 For each mode, capture quiet, normal, dense, selected, search, degraded, light/dark and reduced-motion states on a real Quattro session. Cover 1920x1080, 2560x1440 and available 4K/fractional scaling. Inspect at actual size. Fail on clipped/overlapping primary labels, unreadable selected information, unstable placement, unbounded line spaghetti, misleading flow semantics, a selected entity hidden by details, keyboard traps or frame hitches.
 
 A reviewer should identify who talks to a shared remote, who spawned a process, which subsystem is pressured and by whom, which measured block device is busy (without inventing per-mount attribution), and which application feeds an audio sink. Record answers and actual captures. Fix failures in production code, rerun model/real integrations, and repeat the screenshots before publishing a changed release.
+## Native panel density
+
+When opened from the bar, Tactical Display follows the same Omarchy popup chrome contract as BEAM Deck: `KeyboardPanel` owns the outer frame and content box, Tactical adds no second frame or outer content margin, popup background/text tokens are used, native title/body/caption font sizes are used, and major internal gaps follow the same compact 12px-scale rhythm. Fullscreen summon keeps the Tactical-specific viewport frame and wider monitor-space breathing room.
+

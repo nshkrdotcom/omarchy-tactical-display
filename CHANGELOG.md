@@ -29,7 +29,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Changed
 
 - Routed bar-button presentation through Omarchy's native `Panel`/`KeyboardPanel` geometry, matching BEAM Deck so the top bar remains exposed and the host owns monitor gaps, bar-edge offsets, and clamping; shell/compositor invocation retains the fullscreen overlay route.
-- Reduced Tactical Display inner margins and frame inset while preserving the continuous 2px theme-accent viewport frame.
+- Matched the native bar panel more closely to BEAM Deck: removed Tactical-specific outer content padding on the panel path, adopted Omarchy popup background/text and native title/body/caption typography, tightened major control/modal spacing, and retained only the host border; fullscreen summon keeps its Tactical-specific spacing and continuous 2px theme-accent viewport frame.
 - Set the native release-acceptance soak to 10 minutes after real-host lifecycle/profile coverage demonstrated stable helper and shell resources; the soak remains fixed to one instrument to avoid synthetic re-summon behavior.
 - Aligned fullscreen-overlay keyboard handling with current Omarchy Quattro conventions: editors and command sheets receive first refusal, command-modified keys are not hijacked, bare `1`-`5` picker selection is routed by the fullscreen shell while the picker is visible, and field/control focus is restored deterministically after modal, search, pointer, and instrument transitions.
 - Clarified the distinction between Tactical Display's fullscreen-overlay key handling and Omarchy panel navigation so panel-reserved navigation conventions are not copied into the overlay where they would conflict with product-specific shortcuts.

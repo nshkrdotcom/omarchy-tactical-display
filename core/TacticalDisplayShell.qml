@@ -17,7 +17,10 @@ FocusScope {
         labels:field.scene.labels.length,omittedNodes:field.hiddenCount,
         omittedEdges:field.scene.omittedEdges || 0,layoutDurationMs:field.layoutDurationMs})
     readonly property bool compact: height < 680
-    readonly property int margin: Math.max(10,Math.min(20,width*0.012))
+    property bool nativePanelMode: false
+    readonly property int margin: root.nativePanelMode ? 0 : Math.max(10,Math.min(20,width*0.012))
+    readonly property int contentSpacing: root.nativePanelMode ? 12 : root.compact ? 6 : 10
+    property bool showViewportFrame: true
     readonly property int frameInset: 4
     readonly property bool sheetVisible: !!controller.pendingAction || controller.navState.showPicker || controller.navState.showIntro || controller.navState.showHelp || controller.navState.showSettings || controller.navState.showCapabilities
     readonly property bool pickerSheetVisible:
@@ -78,7 +81,7 @@ FocusScope {
         anchors.fill: parent
         color: root.theme.colors.background
         // A quiet desktop remains visible, but labels sit on contrast-normalized planes.
-        opacity: root.controller.effectiveSettings.privacy ? 1 : 0.91
+        opacity: root.nativePanelMode || root.controller.effectiveSettings.privacy ? 1 : 0.91
     }
 
     // A deliberate monitor-space frame makes the overlay read as one bounded
@@ -86,6 +89,7 @@ FocusScope {
     // masquerade as part of Tactical Display.
     Rectangle {
         id: viewportFrame
+        visible: root.showViewportFrame
         z: 10
         anchors.fill: parent
         anchors.margins: root.frameInset
@@ -94,17 +98,17 @@ FocusScope {
         border.width: 2
         opacity: 0.9
     }
-    Rectangle { x: root.margin-8; y: root.margin-8; width: root.width-2*root.margin+16; height: worldArea.y+8; color: root.theme.colors.background }
-    Rectangle { x: root.margin-8; y: root.margin+worldArea.y+worldArea.height+4; width: root.width-2*root.margin+16; height: root.height-y; color: root.theme.colors.background }
+    Rectangle { visible: !root.nativePanelMode; x: root.margin-8; y: root.margin-8; width: root.width-2*root.margin+16; height: worldArea.y+8; color: root.theme.colors.background }
+    Rectangle { visible: !root.nativePanelMode; x: root.margin-8; y: root.margin+worldArea.y+worldArea.height+4; width: root.width-2*root.margin+16; height: root.height-y; color: root.theme.colors.background }
     ColumnLayout {
         id: content
         anchors.fill: parent
         anchors.margins: root.margin
-        spacing: root.compact ? 6 : 10
+        spacing: root.contentSpacing
         enabled: !root.sheetVisible
         RowLayout {
             Layout.fillWidth: true
-            spacing: 20
+            spacing: root.nativePanelMode ? 12 : 20
             ColumnLayout {
                 Layout.fillWidth: true; spacing: 3
                 Text { visible: !root.compact; text: "TACTICAL DISPLAY  /  LOCAL INSTRUMENTS"; textFormat: Text.PlainText; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize; font.letterSpacing: 1.5 }
@@ -139,7 +143,7 @@ FocusScope {
         Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: root.theme.colors.line; opacity: 0.75 }
         Flow {
             Layout.fillWidth: true
-            spacing: 20
+            spacing: root.nativePanelMode ? 12 : 20
             Repeater {
                 model: root.controller.view.status
                 delegate: Text {
@@ -182,7 +186,7 @@ FocusScope {
             selectionColor: root.theme.colors.accent
             selectedTextColor: root.theme.colors.background
             font.family: root.theme.fontFamily; font.pixelSize: root.theme.bodySize
-            padding: 10
+            padding: root.nativePanelMode ? 8 : 10
             background: Rectangle { radius: 3; color: root.theme.colors.panel; border.color: searchInput.activeFocus ? root.theme.colors.accent : root.theme.colors.line }
             onTextEdited: root.controller.setQuery(text)
             onVisibleChanged: {
@@ -203,7 +207,7 @@ FocusScope {
             onCurrentIndexChanged: if (currentIndex>=0) positionViewAtIndex(currentIndex,ListView.Contain)
             delegate: InstrumentButton {
                 required property var modelData
-                width: searchResults.width; height: root.theme.bodySize+24
+                width: searchResults.width; height: root.theme.bodySize+(root.nativePanelMode ? 20 : 24)
                 text: modelData.name+" / "+modelData.kind+" / "+modelData.subtitle
                 chosen: modelData.selected
                 paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize
@@ -225,7 +229,7 @@ FocusScope {
             Visual.Field {
                 id: field
                 x: 0; y: 0
-                width: worldArea.width-(worldArea.detailWidth?worldArea.detailWidth+18:0)
+                width: worldArea.width-(worldArea.detailWidth?worldArea.detailWidth+(root.nativePanelMode ? 12 : 18):0)
                 height: worldArea.height-(worldArea.detailHeight?worldArea.detailHeight+12:0)-(worldArea.trendHeight?worldArea.trendHeight+8:0)
                 view: root.controller.view
                 theme: root.theme
@@ -289,7 +293,7 @@ FocusScope {
             textFormat: Text.PlainText; elide: Text.ElideRight; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize
         }
     }
-    CommandSheet { anchors.fill: parent; visible: root.sheetVisible; controller: root.controller; theme: root.theme }
+    CommandSheet { anchors.fill: parent; visible: root.sheetVisible; controller: root.controller; theme: root.theme; compactChrome: root.nativePanelMode }
     NumberAnimation { id: modeTransition; target: field; property: "opacity"; from: 0.68; to: 1; duration: root.controller.effectiveSettings.animation === "reduced" ? 0 : root.controller.effectiveSettings.animation === "vivid" ? 220 : 130; easing.type: Easing.OutCubic }
     Connections { target: root.controller; function onInstrumentSelected(instrument) { modeTransition.restart(); root.focusField() } function onSearchRequested() { searchInput.forceActiveFocus() } }
     onFocusedItemChanged: {

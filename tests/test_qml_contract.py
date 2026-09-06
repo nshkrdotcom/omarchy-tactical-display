@@ -67,9 +67,9 @@ class QmlContractTests(unittest.TestCase):
     def test_bar_click_uses_native_omarchy_panel_geometry(self):
         panel = self.panel
         for token in (
-            'Panel {',
+            'Ui.Panel {',
             'manageIpc: false',
-            'KeyboardPanel {',
+            'Ui.KeyboardPanel {',
             'anchorItem: root.anchorItem',
             'owner: root.hostWidget || root',
             'bar: root.bar',
@@ -78,6 +78,9 @@ class QmlContractTests(unittest.TestCase):
             'contentWidth: panel.fittedContentWidth(Style.space(1280))',
             'contentHeight: panel.cappedContentHeight(Style.space(840))',
             'TacticalDisplayShell {',
+            'nativePanelMode: true',
+            'showViewportFrame: false',
+            'ThemeAdapter { id: themeAdapter; popupSurface: true }',
         ):
             self.assertIn(token, panel)
         self.assertNotIn('PanelWindow {', panel)
@@ -134,14 +137,58 @@ class QmlContractTests(unittest.TestCase):
     def test_shell_has_explicit_outer_viewport_frame(self):
         shell = (ROOT / 'core/TacticalDisplayShell.qml').read_text()
         for token in (
-            'readonly property int margin: Math.max(10,Math.min(20,width*0.012))',
+            'property bool nativePanelMode: false',
+            'readonly property int margin: root.nativePanelMode ? 0 : Math.max(10,Math.min(20,width*0.012))',
+            'property bool showViewportFrame: true',
             'readonly property int frameInset: 4',
             'id: viewportFrame',
+            'visible: root.showViewportFrame',
             'anchors.margins: root.frameInset',
             'border.color: root.theme.colors.accent',
             'border.width: 2',
         ):
             self.assertIn(token, shell)
+
+    def test_native_panel_chrome_matches_beam_deck_density_and_popup_style(self):
+        panel = self.panel
+        shell = (ROOT / 'core/TacticalDisplayShell.qml').read_text()
+        theme = (ROOT / 'core/ThemeAdapter.qml').read_text()
+        sheet = (ROOT / 'core/CommandSheet.qml').read_text()
+
+        for token in (
+            'nativePanelMode: true',
+            'ThemeAdapter { id: themeAdapter; popupSurface: true }',
+        ):
+            self.assertIn(token, panel)
+
+        for token in (
+            'readonly property int margin: root.nativePanelMode ? 0 : Math.max(10,Math.min(20,width*0.012))',
+            'readonly property int contentSpacing: root.nativePanelMode ? 12 : root.compact ? 6 : 10',
+            'spacing: root.contentSpacing',
+            'spacing: root.nativePanelMode ? 12 : 20',
+            'padding: root.nativePanelMode ? 8 : 10',
+            'compactChrome: root.nativePanelMode',
+        ):
+            self.assertIn(token, shell)
+
+        for token in (
+            'property bool popupSurface: false',
+            'Color.popups.background',
+            'Color.popups.text',
+            'Style.font.family',
+            'Style.font.body',
+            'Style.font.caption',
+            'Style.font.title',
+        ):
+            self.assertIn(token, theme)
+
+        for token in (
+            'property bool compactChrome: false',
+            'readonly property int outerGap: root.compactChrome ? 12 : 20',
+            'anchors.margins: root.outerGap',
+            'readonly property int sideGap: root.compactChrome ? 14 : 24',
+        ):
+            self.assertIn(token, sheet)
 
     def test_picker_has_explicit_keyboard_navigation(self):
         sheet = (ROOT / 'core/CommandSheet.qml').read_text()
