@@ -29,7 +29,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 ### Changed
 
 - Set the native release-acceptance soak to 10 minutes after real-host lifecycle/profile coverage demonstrated stable helper and shell resources; the soak remains fixed to one instrument to avoid synthetic re-summon behavior.
-- Aligned fullscreen-overlay keyboard handling with current Omarchy Quattro conventions: editors and command sheets receive first refusal, command-modified keys are not hijacked, picker-local `1`-`5` handling is owned by the picker, and field/control focus is restored deterministically after modal, search, pointer, and instrument transitions.
+- Aligned fullscreen-overlay keyboard handling with current Omarchy Quattro conventions: editors and command sheets receive first refusal, command-modified keys are not hijacked, bare `1`-`5` picker selection is routed by the fullscreen shell while the picker is visible, and field/control focus is restored deterministically after modal, search, pointer, and instrument transitions.
 - Clarified the distinction between Tactical Display's fullscreen-overlay key handling and Omarchy panel navigation so panel-reserved navigation conventions are not copied into the overlay where they would conflict with product-specific shortcuts.
 - Documented the optional global-binding workflow and a real-host keyboard/focus acceptance matrix for final Omarchy validation.
 - Corrected fixture-renderer keyboard hints so `Escape` is documented as immediate close and `Backspace` as navigation back.
@@ -38,7 +38,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - Fixed the printed press-and-hold Lua binding to invoke `scripts/invoke.py` with its required `--token` argument and the fixed `/usr/bin/python3` interpreter.
 - Hardened keyboard ownership around focused editors and controls so text entry, standard modified shortcuts, and control interaction are not intercepted by overlay-level commands.
-- Fixed picker-local digit handling so modified number keys do not switch instruments and unmodified `1`-`5` selection remains local to the active overlay/picker context.
+- Fixed picker digit routing so modified number keys do not switch instruments and unmodified `1`-`5` selection works reliably regardless of which picker child owns focus.
 - Fixed focus restoration after sheets, search, pointer interaction, and instrument changes so keyboard navigation reliably returns to the intended field or control surface.
 - Hardened native acceptance tooling for packaged non-Git Omarchy installs, transient diagnostics IPC, and fixed-instrument long soaks with explicit shell-growth containment.
 
