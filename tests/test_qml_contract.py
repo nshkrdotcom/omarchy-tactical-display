@@ -107,7 +107,6 @@ class QmlContractTests(unittest.TestCase):
             'anchors.margins: root.frameInset',
             'border.color: root.theme.colors.line',
             'border.width: 1',
-            'id: frameAccent',
         ):
             self.assertIn(token, shell)
 

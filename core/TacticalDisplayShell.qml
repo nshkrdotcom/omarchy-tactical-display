@@ -94,15 +94,6 @@ FocusScope {
         border.width: 1
         opacity: 0.9
     }
-    Rectangle {
-        id: frameAccent
-        z: 11
-        x: root.frameInset
-        y: root.frameInset
-        width: Math.min(72,Math.max(44,root.width*0.055))
-        height: 2
-        color: root.theme.colors.accent
-    }
     Rectangle { x: root.margin-8; y: root.margin-8; width: root.width-2*root.margin+16; height: worldArea.y+8; color: root.theme.colors.background }
     Rectangle { x: root.margin-8; y: root.margin+worldArea.y+worldArea.height+4; width: root.width-2*root.margin+16; height: root.height-y; color: root.theme.colors.background }
     ColumnLayout {
