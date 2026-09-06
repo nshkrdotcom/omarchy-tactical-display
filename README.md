@@ -98,6 +98,8 @@ Tactical Display does not install a privileged helper, persistent host service, 
 
 ### Keyboard Controls and Navigation
 
+Tactical Display is a fullscreen Omarchy `overlay`, so its bare-key map is active only while the overlay owns keyboard focus. It does **not** reuse Omarchy's bar-panel key catcher: panel conventions reserve keys such as `H/J/K/L`, `Space`, and `X` for generic list movement/actions, while those keys have deliberate instrument semantics here. Omarchy's global `Super+Ctrl+1-9` bar-panel bindings are separate from Tactical Display's local bare `1-5`.
+
 | Key | Action |
 |---|---|
 | `1` – `5` | Switch directly between instruments |
@@ -119,6 +121,19 @@ Tactical Display does not install a privileged helper, persistent host service, 
 | `F6` | Toggle focus between the visualization and controls |
 
 Instrument-specific controls are listed in the in-app legend. Notable shortcuts include `V` for connection/storage/audio lenses, `E` for process emphasis, `T` for machine trends, and `L`/`O` for Connection Field listener/loopback visibility.
+
+When Search has focus, normal text-editing behavior wins: modifier chords such as `Ctrl+A/C/V` are left to the `TextField`, while unmodified `Up`/`Down` move through results and `Enter` focuses the result. `F6` moves keyboard focus into the native controls, where `Tab`/`Shift+Tab`, `Enter`, and `Space` follow normal Qt control behavior; `F6` returns to field navigation. Mouse-focused controls are detected from Qt's active focus item so field shortcuts cannot leak through a focused button. `Escape` remains the one-stroke emergency dismissal from every overlay state.
+
+### Optional global bindings
+
+Tactical Display does not install compositor bindings. To print the reviewed Omarchy Quattro Lua example for `Super+F10` toggle and `Super+F11` press-and-hold:
+
+```bash
+omarchy menu keybindings --print   # inspect your effective bindings first
+make bindings                      # print only; does not edit configuration
+```
+
+Add the printed block to `~/.config/hypr/bindings.lua` only after checking for collisions. If you intentionally replace an existing Omarchy binding, unbind that default explicitly first; the generated Tactical Display block never unbinds user or Omarchy keys on your behalf.
 
 ## Configuration
 

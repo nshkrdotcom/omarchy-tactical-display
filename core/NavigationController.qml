@@ -173,19 +173,29 @@ Item {
         if (pendingAction && telemetry) telemetry.audioAction(pendingAction.action,pendingAction.key,null)
         pendingAction = null
     }
+    function handleSearchKey(event) {
+        // The TextField owns ordinary editing and modifier chords. Only the
+        // unmodified result-navigation keys are promoted to overlay actions.
+        if (event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier | Qt.ShiftModifier)) return
+        if (event.key === Qt.Key_Down || event.key === Qt.Key_Up) {
+            step(event.key === Qt.Key_Down ? 1 : -1)
+            event.accepted = true
+        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+            if (!selected) step(1)
+            focusSelection()
+            event.accepted = true
+        }
+    }
     function handleKey(event, editing, panelActive) {
         // Tactical Display is an ephemeral Omarchy overlay: Escape is the invariant
         // one-stroke exit from every mode, including search, sheets and focused views.
         if (event.key === Qt.Key_Escape) { dismissRequested(); event.accepted = true; return }
-        if (editing) {
-            if (event.key === Qt.Key_Down || event.key === Qt.Key_Up) { step(event.key === Qt.Key_Down ? 1 : -1); event.accepted = true }
-            else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) { if (!selected) step(1); focusSelection(); event.accepted = true }
-            return
-        }
-        if (navState.showPicker && event.key >= Qt.Key_1 && event.key <= Qt.Key_5) { chooseInstrument(Instruments.catalog[event.key-Qt.Key_1].id); event.accepted=true; return }
-        if (panelActive) return
+        // Editors and command sheets get first refusal. Their own key handlers may
+        // opt into semantic navigation without exposing normal editing/control keys
+        // to the overlay shortcut layer.
+        if (editing || panelActive) return
         if (event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) return
-        if (event.key >= Qt.Key_1 && event.key <= Qt.Key_5) chooseInstrument(Instruments.catalog[event.key - Qt.Key_1].id)
+        if (!(event.modifiers & Qt.ShiftModifier) && event.key >= Qt.Key_1 && event.key <= Qt.Key_5) chooseInstrument(Instruments.catalog[event.key - Qt.Key_1].id)
         else if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) step(event.key === Qt.Key_Backtab || event.modifiers & Qt.ShiftModifier ? -1 : 1)
         else if (event.key === Qt.Key_Right || event.key === Qt.Key_Down) step(1)
         else if (event.key === Qt.Key_Left || event.key === Qt.Key_Up) step(-1)

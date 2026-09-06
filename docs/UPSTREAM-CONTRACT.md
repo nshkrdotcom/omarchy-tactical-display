@@ -30,6 +30,29 @@ BarWidget injects bar/moduleName/settings and exposes vertical/barSize. WidgetBu
 
 Bar placement uses `omarchy bar put` or `omarchy bar move --section ... --index ...`; setting uses `omarchy bar set ... [--json]`. Native enablement can place a widget. The plugin itself never edits the user's layout behind the host. Personal bindings are Lua in Quattro 4.0.1, using the provided o.bind/hl APIs; the printed helper is not a legacy hyprland.conf installer.
 
+## Keyboard and focus recheck — 2026-09-06
+
+The keyboard layer was rechecked separately against the current Omarchy `quattro` branch because this behavior is both user-visible and more likely to evolve than the pinned 4.0.1 manifest/IPC contract. Sources reviewed:
+
+- https://github.com/omacom/omarchy/blob/quattro/shell/Ui/PanelKeyCatcher.qml
+- https://github.com/omacom/omarchy/blob/quattro/shell/Ui/KeyboardPanel.qml
+- https://github.com/omacom/omarchy/blob/quattro/shell/plugins/emojis/Emojis.qml
+- https://github.com/omacom/omarchy/blob/quattro/shell/plugins/clipboard/Clipboard.qml
+- https://github.com/omacom/omarchy/blob/quattro/shell/plugins/image-picker/ImagePicker.qml
+- https://github.com/omacom/omarchy/blob/quattro/shell/plugins/README.md
+- https://github.com/omacom/omarchy/blob/quattro/manual/05-the-top-bar.md
+- https://github.com/omacom/omarchy/blob/quattro/manual/07-hotkeys.md
+- https://github.com/omacom/omarchy/blob/quattro/config/hypr/bindings.lua
+- https://github.com/omacom/omarchy/blob/quattro/default/hypr/bindings/utilities.lua
+- https://doc.qt.io/qt-6/qml-qtquick-keys.html
+- https://doc.qt.io/qt-6/qtquick-input-focus.html
+
+`PanelKeyCatcher` is explicitly a **panel** abstraction. Its shared map assigns arrows plus `H/J/K/L` to movement, `Space`/`Enter` to activation, and `X` to deletion, and it requires `blocked: editor.activeFocus` when an inline editor needs normal typing behavior. Tactical Display is instead a fullscreen `overlay`; Omarchy's first-party fullscreen overlays use their own focused `Keys.BeforeItem` catchers with product-specific semantics. Therefore Tactical Display intentionally keeps its custom overlay map rather than importing panel semantics that would collide with its `H`, `L`, `Space`, and `X` actions.
+
+The resulting policy is: acquire an explicit active-focus target when the overlay maps; accept only keys the plugin actually handles; give focused text editors and command sheets first refusal; do not hijack `Ctrl`/`Alt`/`Super` editing/application chords; keep bare `1-5` local to the overlay (distinct from Omarchy's global `Super+Ctrl+1-9` bar-panel map); and restore field focus deterministically after search/sheet/pointer transitions. The shell tracks Qt's `Window.activeFocusItem` so mouse- or Tab-focused controls suspend field shortcuts even when focus did not enter through `F6`. Focus acquisition/restoration uses `Qt.callLater` where mapping or modal teardown can race layout/focus, matching the current Omarchy keyboard-panel/overlay pattern.
+
+Personal compositor bindings remain opt-in. Current Omarchy guidance puts additions in `~/.config/hypr/bindings.lua`, tells users to inspect `omarchy menu keybindings --print`, and requires an explicit `hl.unbind(...)` before intentionally replacing a default. `scripts/print-bindings.sh` therefore prints only, performs no automatic unbind, and uses the plugin's real `invoke.py --token` CLI for hold/release.
+
 ## Required target recheck
 
 ```bash

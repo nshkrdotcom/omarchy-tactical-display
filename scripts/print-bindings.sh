@@ -2,7 +2,7 @@
 # Prints only. The user reviews and adds this Lua block to personal bindings.lua.
 set -euo pipefail
 cat <<'LUA'
--- Tactical Display / Omarchy Quattro 4.0.1 Lua bindings.
+-- Tactical Display / Omarchy Quattro Lua bindings.
 -- Review collisions: omarchy menu keybindings --print
 -- Add this block ONCE to ~/.config/hypr/bindings.lua, then hyprctl reload.
 do
@@ -11,7 +11,7 @@ do
   local helper = os.getenv("HOME") .. "/.config/omarchy/plugins/nshkr.tactical-display/scripts/invoke.py"
   local function quote(s) return "'" .. s:gsub("'", "'\\''") .. "'" end
   local function invoke(action, token)
-    hl.dispatch(hl.dsp.exec_cmd("python3 -B " .. quote(helper) .. " " .. action .. " " .. quote(token)))
+    hl.dispatch(hl.dsp.exec_cmd("/usr/bin/python3 -B " .. quote(helper) .. " " .. action .. " --token " .. quote(token)))
   end
   o.bind("SUPER + F10", "Tactical Display toggle", "omarchy-shell shell toggle nshkr.tactical-display '{}'")
   o.bind("SUPER + F11", "Tactical Display hold", function()

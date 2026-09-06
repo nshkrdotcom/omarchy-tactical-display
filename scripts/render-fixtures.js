@@ -52,7 +52,7 @@ function render(mode,scenario,variant,width=1920,height=1080){
   rows.slice(0,8).forEach(r=>{svg+=text(r.label,x+18,y,12,p.subdued)+text(Layout.fitText(r.value,detail-36,measure),x+18,y+22,14,p.foreground);y+=60;});
  }
  if(!view.visibleNodes.length)svg+=text(view.empty||'No observations in this view',width/2,header+fieldHeight*0.42,16,p.subdued,'text-anchor="middle"');
- svg+=text('1-5 Switch  / Search  Tab Select  Enter Focus  F Isolate  Space Freeze  Esc Back',margin,height-27,12,p.subdued);
+ svg+=text('1-5 Switch  / Search  Tab Select  Enter Focus  F Isolate  Space Freeze  Esc Close  /  Backspace Back',margin,height-27,12,p.subdued);
  svg+=text(`${scene.nodes.length} nodes / ${scene.edges.length} links / ${scene.labels.length} labels / ${scene.omittedNodes} omitted`,width-margin,height-27,12,p.subdued,'text-anchor="end"');
  svg+='</svg>';
  const name=`${mode}-${scenario}-${variant}-${width}x${height}`;fs.writeFileSync(path.join(out,name+'.svg'),svg);

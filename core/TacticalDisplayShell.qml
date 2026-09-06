@@ -24,12 +24,15 @@ FocusScope {
     readonly property string liveState: controller.navState.frozen ? "FROZEN " + (controller.displayFrame.wallTime ? new Date(controller.displayFrame.wallTime*1000).toLocaleTimeString() : "") : controller.telemetry ? controller.telemetry.statusText : "ACQUIRING"
     signal nativePanelRequested(string id)
     property bool controlsFocus: false
+    readonly property var focusedItem: Window.activeFocusItem
     focus: true
+    function focusField() { controlsFocus=false; root.forceActiveFocus() }
+    function focusControls() { controlsFocus=true; searchButton.forceActiveFocus() }
     function copySelection() { if (controller.selected) Quickshell.clipboardText=Inspection.clipboard(controller.selected,controller.currentDetail,controller.effectiveSettings.privacy,controller.displayFrame) }
     Keys.priority: Keys.BeforeItem
     Keys.onPressed: event => {
-        if (event.key===Qt.Key_F6 && !sheetVisible) { controlsFocus=!controlsFocus; if(controlsFocus) searchButton.forceActiveFocus(); else root.forceActiveFocus(); event.accepted=true; return }
-        if (!sheetVisible && !searchInput.activeFocus && event.key === Qt.Key_C && !(event.modifiers & (Qt.ControlModifier|Qt.AltModifier|Qt.MetaModifier))) { copySelection(); event.accepted=true; return }
+        if (event.key===Qt.Key_F6 && !sheetVisible) { if(controlsFocus) focusField(); else focusControls(); event.accepted=true; return }
+        if (!sheetVisible && !searchInput.activeFocus && !controlsFocus && event.key === Qt.Key_C && !(event.modifiers & (Qt.ControlModifier|Qt.AltModifier|Qt.MetaModifier))) { copySelection(); event.accepted=true; return }
         controller.handleKey(event,searchInput.activeFocus,sheetVisible||controlsFocus)
     }
     Rectangle {
@@ -129,8 +132,12 @@ FocusScope {
             padding: 10
             background: Rectangle { radius: 3; color: root.theme.colors.panel; border.color: searchInput.activeFocus ? root.theme.colors.accent : root.theme.colors.line }
             onTextEdited: root.controller.setQuery(text)
-            onVisibleChanged: if (visible) forceActiveFocus(); else root.forceActiveFocus()
-            Keys.onPressed: event => root.controller.handleKey(event,true,false)
+            onVisibleChanged: {
+                if (visible) forceActiveFocus()
+                else if (!root.sheetVisible) root.focusField()
+            }
+            Keys.priority: Keys.BeforeItem
+            Keys.onPressed: event => root.controller.handleSearchKey(event)
         }
         ListView {
             id: searchResults
@@ -173,8 +180,8 @@ FocusScope {
                 focusKey: root.controller.navState.focusKey
                 labelDensity: root.controller.effectiveSettings.labels
                 animation: root.controller.effectiveSettings.animation
-                onPicked: key => { root.controller.pickKey(key); root.forceActiveFocus() }
-                onFocused: key => { root.controller.pickKey(key); root.controller.focusSelection(); root.forceActiveFocus() }
+                onPicked: key => { root.controller.pickKey(key); root.focusField() }
+                onFocused: key => { root.controller.pickKey(key); root.controller.focusSelection(); root.focusField() }
                 onHovered: key => root.controller.hoveredKey = key
             }
             Text {
@@ -231,7 +238,11 @@ FocusScope {
     }
     CommandSheet { anchors.fill: parent; visible: root.sheetVisible; controller: root.controller; theme: root.theme }
     NumberAnimation { id: modeTransition; target: field; property: "opacity"; from: 0.68; to: 1; duration: root.controller.effectiveSettings.animation === "reduced" ? 0 : root.controller.effectiveSettings.animation === "vivid" ? 220 : 130; easing.type: Easing.OutCubic }
-    Connections { target: root.controller; function onInstrumentSelected(instrument) { modeTransition.restart(); root.forceActiveFocus() } function onSearchRequested() { searchInput.forceActiveFocus() } }
-    onSheetVisibleChanged: if (!sheetVisible) forceActiveFocus()
-    Component.onCompleted: forceActiveFocus()
+    Connections { target: root.controller; function onInstrumentSelected(instrument) { modeTransition.restart(); root.focusField() } function onSearchRequested() { searchInput.forceActiveFocus() } }
+    onFocusedItemChanged: {
+        if (sheetVisible || searchInput.activeFocus) return
+        controlsFocus = !!focusedItem && focusedItem !== root
+    }
+    onSheetVisibleChanged: if (!sheetVisible) Qt.callLater(function() { if (!root.sheetVisible && !searchInput.visible) root.focusField() })
+    Component.onCompleted: Qt.callLater(function() { root.focusField() })
 }

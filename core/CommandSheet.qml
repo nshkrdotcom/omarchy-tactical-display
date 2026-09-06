@@ -41,7 +41,10 @@ FocusScope {
     Keys.priority: Keys.BeforeItem
     Keys.onPressed: event => {
         if (root.kind !== "picker" || event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) return
-        if (event.key === Qt.Key_Down || event.key === Qt.Key_Right) root.focusPicker(root.pickerIndex + 1)
+        if (!(event.modifiers & Qt.ShiftModifier) && event.key >= Qt.Key_1 && event.key <= Qt.Key_5) {
+            var direct = Instruments.catalog[event.key - Qt.Key_1]
+            if (direct) root.controller.chooseInstrument(direct.id)
+        } else if (event.key === Qt.Key_Down || event.key === Qt.Key_Right) root.focusPicker(root.pickerIndex + 1)
         else if (event.key === Qt.Key_Up || event.key === Qt.Key_Left) root.focusPicker(root.pickerIndex - 1)
         else if (event.key === Qt.Key_Home) root.focusPicker(0)
         else if (event.key === Qt.Key_End) root.focusPicker(Instruments.catalog.length - 1)

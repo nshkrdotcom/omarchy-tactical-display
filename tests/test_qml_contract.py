@@ -104,11 +104,37 @@ class QmlContractTests(unittest.TestCase):
         for token in ('property int pickerIndex', 'id: instrumentRepeater',
                       'instrumentRepeater.itemAt(root.pickerIndex)',
                       'event.key === Qt.Key_Down', 'event.key === Qt.Key_Up',
+                      'event.key >= Qt.Key_1 && event.key <= Qt.Key_5',
                       'event.key === Qt.Key_Return || event.key === Qt.Key_Enter',
                       'root.controller.chooseInstrument(instrument.id)'):
             self.assertIn(token, sheet)
+        self.assertIn('event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)', sheet)
         self.assertIn('Qt.callLater(function() { root.focusPicker(root.currentInstrumentIndex()) })', sheet)
         self.assertNotIn('row.button', sheet)
+
+    def test_overlay_shortcuts_yield_to_editors_sheets_and_command_modifiers(self):
+        shell = (ROOT / 'core/TacticalDisplayShell.qml').read_text()
+        nav = (ROOT / 'core/NavigationController.qml').read_text()
+        sheet = (ROOT / 'core/CommandSheet.qml').read_text()
+        self.assertIn('readonly property var focusedItem: Window.activeFocusItem', shell)
+        self.assertIn('function focusField() { controlsFocus=false; root.forceActiveFocus() }', shell)
+        self.assertIn('function focusControls() { controlsFocus=true; searchButton.forceActiveFocus() }', shell)
+        self.assertIn('controlsFocus = !!focusedItem && focusedItem !== root', shell)
+        self.assertIn('Keys.onPressed: event => root.controller.handleSearchKey(event)', shell)
+        self.assertIn('Component.onCompleted: Qt.callLater(function() { root.focusField() })', shell)
+        self.assertIn('if (editing || panelActive) return', nav)
+        self.assertIn('Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier', nav)
+        self.assertIn('function handleSearchKey(event)', nav)
+        self.assertIn('Qt.ShiftModifier)) return', nav)
+        self.assertNotIn('navState.showPicker && event.key >= Qt.Key_1', nav)
+        self.assertIn('var direct = Instruments.catalog[event.key - Qt.Key_1]', sheet)
+
+    def test_focus_reset_paths_clear_control_mode(self):
+        shell = (ROOT / 'core/TacticalDisplayShell.qml').read_text()
+        self.assertIn('onPicked: key => { root.controller.pickKey(key); root.focusField() }', shell)
+        self.assertIn('onFocused: key => { root.controller.pickKey(key); root.controller.focusSelection(); root.focusField() }', shell)
+        self.assertIn('onSheetVisibleChanged: if (!sheetVisible) Qt.callLater', shell)
+        self.assertIn('function onInstrumentSelected(instrument) { modeTransition.restart(); root.focusField() }', shell)
 
     def test_qml_relative_import_targets_exist(self):
         for file in ROOT.rglob('*.qml'):

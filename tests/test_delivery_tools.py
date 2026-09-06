@@ -1,5 +1,6 @@
 """Security and observation semantics for actual delivery/operator paths."""
 from pathlib import Path
+import subprocess
 import unittest
 
 from td_telemetry.audio import normalize_graph
@@ -31,5 +32,17 @@ class DeliveryTests(unittest.TestCase):
         for term in ('--max-helper-cpu-percent','--max-helper-children','--max-ready-ms','helperCpuPercentOneCore','childCount'):
             self.assertIn(term,text)
         self.assertNotIn('fixtures/scenarios',text)
-        self.assertIn('release = true',(ROOT/'scripts/print-bindings.sh').read_text())
-        self.assertIn('ignore_mods = true',(ROOT/'scripts/print-bindings.sh').read_text())
+        binding_source=(ROOT/'scripts/print-bindings.sh').read_text()
+        self.assertIn('release = true',binding_source)
+        self.assertIn('ignore_mods = true',binding_source)
+
+    def test_printed_bindings_match_current_hold_cli_and_do_not_mutate_user_bindings(self):
+        script=ROOT/'scripts/print-bindings.sh'
+        output=subprocess.run(['bash',str(script)],check=True,capture_output=True,text=True,timeout=5).stdout
+        self.assertIn('omarchy menu keybindings --print',output)
+        self.assertIn('/usr/bin/python3 -B',output)
+        self.assertIn(' --token ',output)
+        self.assertIn('release = true',output)
+        self.assertIn('ignore_mods = true',output)
+        self.assertIn('non_consuming = true',output)
+        self.assertNotIn('hl.unbind(',output)
