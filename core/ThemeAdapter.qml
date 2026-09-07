@@ -3,12 +3,13 @@ import qs.Commons
 import "../visual/Palette.js" as Palette
 
 QtObject {
-    property bool popupSurface: false
-    readonly property color baseBackground: popupSurface ? Color.popups.background : Color.background
-    readonly property color baseForeground: popupSurface ? Color.popups.text : Color.foreground
+    // One presentation for the bar panel and fullscreen host. Window geometry
+    // is not a typography or palette profile.
+    readonly property color baseBackground: Color.popups.background
+    readonly property color baseForeground: Color.popups.text
     readonly property var colors: Palette.derive(baseBackground, baseForeground, Color.accent, Color.urgent)
-    readonly property string fontFamily: popupSurface ? Style.font.family : Style.fontFamily
-    readonly property int bodySize: popupSurface ? Style.font.body : Math.max(16, Style.fontBaseSize)
-    readonly property int smallSize: popupSurface ? Style.font.caption : Math.max(13, Style.fontBaseSize - 1)
-    readonly property int titleSize: popupSurface ? Style.font.title : Math.max(26, Style.fontBaseSize * 2)
+    readonly property string fontFamily: Style.font.family
+    readonly property int bodySize: Style.font.body
+    readonly property int smallSize: Style.font.caption
+    readonly property int titleSize: Style.font.title
 }

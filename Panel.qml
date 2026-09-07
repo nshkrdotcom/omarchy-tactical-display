@@ -55,7 +55,7 @@ Ui.Panel {
         pluginId: root.moduleName
     }
 
-    ThemeAdapter { id: themeAdapter; popupSurface: true }
+    ThemeAdapter { id: themeAdapter }
 
     NavigationController {
         id: navigation
@@ -92,8 +92,6 @@ Ui.Panel {
             controller: navigation
             theme: themeAdapter
             active: root.opened
-            nativePanelMode: true
-            showViewportFrame: false
             onStatisticsChanged: root.renderStatistics = displayShell.statistics
             Component.onCompleted: root.renderStatistics = displayShell.statistics
             onNativePanelRequested: id => root.openNativePanel(id)

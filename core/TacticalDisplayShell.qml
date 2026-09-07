@@ -19,11 +19,9 @@ FocusScope {
         omittedEdges:field.scene.omittedEdges || 0,layoutDurationMs:field.layoutDurationMs})
     readonly property bool compact: height < Style.space(680)
     readonly property bool compactWidth: width < Style.space(1050)
-    property bool nativePanelMode: false
-    readonly property int margin: root.nativePanelMode ? 0 : Math.max(Style.spacing.xl, Math.min(Style.space(20), width * 0.012))
-    readonly property int contentSpacing: root.nativePanelMode ? Style.spacing.xxl : root.compact ? Style.spacing.md : Style.spacing.xl
-    property bool showViewportFrame: true
-    readonly property int frameInset: Style.spacing.sm
+    // The clicked panel is the presentation reference for every host. Outer
+    // borders/padding belong to KeyboardPanel or the fullscreen BorderSurface.
+    readonly property int contentSpacing: Style.spacing.xxl
     readonly property bool sheetVisible: !!controller.pendingAction || controller.navState.showPicker || controller.navState.showIntro || controller.navState.showHelp || controller.navState.showSettings || controller.navState.showCapabilities || controller.navState.showOperator
     readonly property bool pickerSheetVisible:
         !controller.pendingAction &&
@@ -91,36 +89,16 @@ FocusScope {
     Rectangle {
         anchors.fill: parent
         color: root.theme.colors.background
-        // A quiet desktop remains visible, but labels sit on contrast-normalized planes.
-        opacity: root.nativePanelMode || root.controller.effectiveSettings.privacy ? 1 : 0.91
     }
-
-    // A deliberate monitor-space frame makes the overlay read as one bounded
-    // instrument surface instead of allowing underlying desktop geometry to
-    // masquerade as part of Tactical Display.
-    Rectangle {
-        id: viewportFrame
-        visible: root.showViewportFrame
-        z: 10
-        anchors.fill: parent
-        anchors.margins: root.frameInset
-        color: "transparent"
-        border.color: root.theme.colors.accent
-        border.width: Style.space(2)
-        opacity: 0.9
-    }
-    Rectangle { visible: !root.nativePanelMode; x: root.margin-Style.spacing.lg; y: root.margin-Style.spacing.lg; width: root.width-2*root.margin+Style.spacing.lg*2; height: worldArea.y+Style.spacing.lg; color: root.theme.colors.background }
-    Rectangle { visible: !root.nativePanelMode; x: root.margin-Style.spacing.lg; y: root.margin+worldArea.y+worldArea.height+Style.spacing.sm; width: root.width-2*root.margin+Style.spacing.lg*2; height: root.height-y; color: root.theme.colors.background }
     ColumnLayout {
         id: content
         anchors.fill: parent
-        anchors.margins: root.margin
         spacing: root.contentSpacing
         enabled: !root.sheetVisible
         RowLayout {
             id: headerBar
             Layout.fillWidth: true
-            spacing: root.nativePanelMode ? Style.spacing.huge : Style.space(28)
+            spacing: Style.spacing.huge
 
             ColumnLayout {
                 id: identityBlock
@@ -132,7 +110,7 @@ FocusScope {
                     textFormat: Text.PlainText
                     color: root.theme.colors.foreground
                     font.family: root.theme.fontFamily
-                    font.pixelSize: root.nativePanelMode ? Style.font.subtitle : root.theme.titleSize
+                    font.pixelSize: Style.font.subtitle
                     font.weight: Font.DemiBold
                     font.letterSpacing: 0.4
                 }
@@ -196,7 +174,7 @@ FocusScope {
                     Text {
                         id: headerContext
                         Layout.alignment: Qt.AlignBaseline
-                        Layout.maximumWidth: root.nativePanelMode ? Style.space(320) : Style.space(460)
+                        Layout.maximumWidth: Style.space(320)
                         text: root.headerContext
                         textFormat: Text.PlainText
                         elide: Text.ElideRight
@@ -258,22 +236,9 @@ FocusScope {
                     paletteColors: root.theme.colors
                     fontFamily: root.theme.fontFamily
                     textSize: root.theme.smallSize
-                    onClicked: root.controller.dismissRequested()
+                    onClicked: root.controller.dismissRequested("close-control")
                 }
             }
-        }
-
-        // Overlay mode keeps the richer instrument-purpose line; native panel
-        // chrome stays compact and matches BEAM Deck's two-line identity rhythm.
-        Text {
-            Layout.fillWidth: true
-            visible: !root.nativePanelMode && !root.compact
-            text: root.controller.view.info.purpose
-            textFormat: Text.PlainText
-            elide: Text.ElideRight
-            color: root.theme.colors.subdued
-            font.family: root.theme.fontFamily
-            font.pixelSize: root.theme.bodySize
         }
 
         Flow {
@@ -306,11 +271,10 @@ FocusScope {
             Layout.fillWidth: true
             Layout.preferredHeight: Style.spacing.hairline
             color: root.theme.colors.line
-            opacity: root.nativePanelMode ? 1 : 0.75
         }
         Flow {
             Layout.fillWidth: true
-            spacing: root.nativePanelMode ? Style.spacing.xxl : Style.space(20)
+            spacing: Style.spacing.xxl
             Repeater {
                 model: root.controller.view.status
                 delegate: Text {
@@ -377,7 +341,7 @@ FocusScope {
             onCurrentIndexChanged: if (currentIndex>=0) positionViewAtIndex(currentIndex,ListView.Contain)
             delegate: InstrumentButton {
                 required property var modelData
-                width: searchResults.width; height: root.theme.bodySize+(root.nativePanelMode ? Style.space(20) : Style.space(24))
+                width: searchResults.width; height: root.theme.bodySize+Style.space(20)
                 text: modelData.name+" / "+modelData.kind+" / "+modelData.subtitle
                 chosen: modelData.selected
                 paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize
@@ -399,7 +363,7 @@ FocusScope {
             Visual.Field {
                 id: field
                 x: 0; y: 0
-                width: worldArea.width-(worldArea.detailWidth?worldArea.detailWidth+(root.nativePanelMode ? Style.spacing.xxl : Style.spacing.huge):0)
+                width: worldArea.width-(worldArea.detailWidth?worldArea.detailWidth+Style.spacing.xxl:0)
                 height: worldArea.height-(worldArea.detailHeight?worldArea.detailHeight+Style.spacing.xxl:0)-(worldArea.trendHeight?worldArea.trendHeight+Style.spacing.lg:0)
                 view: root.controller.view
                 theme: root.theme
@@ -464,7 +428,7 @@ FocusScope {
             textFormat: Text.PlainText; elide: Text.ElideRight; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize
         }
     }
-    CommandSheet { anchors.fill: parent; visible: root.sheetVisible && !root.controller.navState.showOperator; controller: root.controller; theme: root.theme; compactChrome: root.nativePanelMode }
+    CommandSheet { anchors.fill: parent; visible: root.sheetVisible && !root.controller.navState.showOperator; controller: root.controller; theme: root.theme; compactChrome: true }
     Loader {
         anchors.fill: parent
         active: root.controller.navState.showOperator

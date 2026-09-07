@@ -61,7 +61,9 @@ The generated SVG matrix is developer evidence, not Qt/Wayland screenshots. Read
 
 ## Native bar-panel geometry acceptance
 
-Open Tactical Display by clicking its actual bar widget. The resulting surface must use Omarchy `Panel`/`KeyboardPanel` geometry rather than a full-output `PanelWindow`: the top bar remains visible and interactive, the panel stays inside the host-computed monitor/bar/gap bounds, and smaller outputs clamp rather than clip. The native panel must present exactly one outer frame: Omarchy's own panel border; the Tactical fullscreen viewport frame is disabled on this path. On the current 1280x800 scale-1 reference host with a 26px top bar, `gaps_in = 5`, `gaps_out = 10`, and a 2px Hyprland border, approximately x=10..1270 and y=36..790 is a useful diagnostic baseline; the shell-reported geometry is authoritative if Omarchy style tokens change.
+Open Tactical Display by clicking its actual bar widget. The resulting surface must use Omarchy `Panel`/`KeyboardPanel` card geometry: the top bar remains visible and interactive, the panel stays inside the host-computed monitor/bar/gap bounds, and smaller outputs clamp rather than clip. Each surface must present exactly one outer frame using Omarchy's popup border specification. The fullscreen host uses `BorderSurface`; there is no separate Tactical viewport frame. On a 1280x800 scale-1 host with a 26px top bar, x=10..1270 and y=36..790 applies only when the effective shell gap is 10; actual shell style and geometry are authoritative.
+
+Compare pointer-click and IPC launches with the same instrument and privacy setting. Title, caption and button fonts, button order, control padding, popup colors and content-relative edge clearances must match. The clicked panel's bar offset/gaps and the overlay's monitor extent are expected to differ. `tests/qml_surfaces/tst_surfaces.qml` executes production shared-header geometry at 900, 1260 and 1900 logical pixels, and live native-theme token changes with deliberately different general/popup inputs. Source contracts separately require both hosts to use that shared presentation and all four border content insets. These tests do not replace native screenshot comparisons.
 
 Verify left-click toggle, right-click picker, outside-click dismissal, Escape, and switching between bar popouts. The bar path must not reintroduce full-output centering or generic `PanelKeyCatcher` key semantics; Tactical Display keeps its own keyboard router inside the native `KeyboardPanel`.
 
@@ -109,6 +111,8 @@ The first command requires Omarchy, Hyprland and Wayland. Its lifecycle phase re
 The audio runner requires `pw-dump`, `pw-play` and a real sink. It creates a temporary silent stream, verifies that the actual stream and route appear, then cleans up its own stream. It does not change defaults, volume or mute.
 
 On native-runner failure, `failureContext` records matching helpers and the last known helper/shell process state **before cleanup**. This distinguishes a missing loaded plugin instance from exited processes without allowing automatic hide/unload to erase that evidence. Compare `startTicks` with prior samples before interpreting a reused PID. The runner does not relax its limits or silently reopen a lost instance.
+
+Overlay lifecycle debug lines distinguish an explicit plugin hide request (`escape`, `back`, `close-control`, `native-panel`, `no-screens`) from host close and component destruction. The reason is allowlisted and contains no entity identity or payload. A host close without a preceding hide request is not evidence of a keyboard dismissal inside the plugin. Inspect these with `quickshell log -p "$OMARCHY_PATH/shell" --no-color` when a native run loses its instance.
 
 ## Profiling
 

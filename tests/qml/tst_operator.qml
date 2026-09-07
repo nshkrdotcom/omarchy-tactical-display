@@ -24,6 +24,7 @@ TestCase {
         function freeze(value) { return 7 }
     }
     NavigationController { id: controller; telemetry: fake }
+    SignalSpy { id: dismissal; target: controller; signalName: "dismissRequested" }
     function sample(at) {
         return {schemaVersion:3,sequence:at,monotonic:at,wallTime:1700000000+at,
             system:{cpuPercent:25},processes:[{key:"process:42:100",name:"Operator test",pid:42,groupKey:"application:test"}],groups:[],
@@ -81,5 +82,14 @@ TestCase {
         controller.jumpOperator({instrument:"connection",entityKey:"process:42:100",groupKey:"application:test"})
         compare(controller.navState.context.processKey,"process:42:100")
         compare(controller.navState.context.groupKey,"application:test")
+    }
+    function test_dismissal_reports_only_the_explicit_navigation_reason() {
+        dismissal.clear()
+        var e={key:Qt.Key_Escape,modifiers:Qt.NoModifier,accepted:false}
+        controller.handleKey(e,true,true)
+        compare(dismissal.count,1); compare(dismissal.signalArguments[0][0],"escape")
+        verify(e.accepted)
+        controller.back()
+        compare(dismissal.count,2); compare(dismissal.signalArguments[1][0],"back")
     }
 }

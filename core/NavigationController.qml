@@ -41,7 +41,7 @@ Item {
         return entity
     }
     readonly property var currentDetail: detailFrame && selected && detailFrame.key === selected.key && !detailFrame.ended && (navState.frozen || detailFrame.monotonic >= displayFrame.monotonic) ? detailFrame.data : selected ? selected.raw : null
-    signal dismissRequested()
+    signal dismissRequested(string reason)
     signal instrumentSelected(string instrument)
     signal searchRequested()
 
@@ -176,7 +176,7 @@ Item {
             displayFrame = liveFrame
         }
         navState = result.state
-        if (result.close) dismissRequested()
+        if (result.close) dismissRequested("back")
     }
     function reset() { navState = Navigation.reset(navState); detailFrame = null }
     function setQuery(text) { setFlag("query",text.slice(0,160)) }
@@ -229,7 +229,7 @@ Item {
     function handleKey(event, editing, panelActive) {
         // Tactical Display is an ephemeral Omarchy overlay: Escape is the invariant
         // one-stroke exit from every mode, including search, sheets and focused views.
-        if (event.key === Qt.Key_Escape) { dismissRequested(); event.accepted = true; return }
+        if (event.key === Qt.Key_Escape) { dismissRequested("escape"); event.accepted = true; return }
         // Editors and command sheets get first refusal. Their own key handlers may
         // opt into semantic navigation without exposing normal editing/control keys
         // to the overlay shortcut layer.

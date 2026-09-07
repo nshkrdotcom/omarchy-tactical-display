@@ -6,7 +6,7 @@
 
 **Real-time system instrumentation and visual diagnostics for Omarchy Quattro.**
 
-Tactical Display is a keyboard-first observability surface for Omarchy. Clicking its bar widget opens a native Omarchy panel that respects the bar edge, monitor gaps, and shell clamping; compositor/shell invocation retains the fullscreen overlay path. Network connections, process ancestry, machine pressure, storage topology, and PipeWire routing share one visual and inspection model.
+Tactical Display is a keyboard-first observability surface for Omarchy. Clicking its bar widget opens a native Omarchy panel that respects the bar edge, monitor gaps, and shell clamping; compositor/shell invocation retains the fullscreen overlay path. Both use the clicked panel's typography, header/action layout, popup palette, border specification and padding; fullscreen changes the available space, not the visual style. Network connections, process ancestry, machine pressure, storage topology, and PipeWire routing share one visual and inspection model.
 
 ![Tactical Display preview](preview.png)
 

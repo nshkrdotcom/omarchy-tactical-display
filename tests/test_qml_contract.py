@@ -79,9 +79,7 @@ class QmlContractTests(unittest.TestCase):
             'contentWidth: panel.fittedContentWidth(Style.space(1280))',
             'contentHeight: panel.cappedContentHeight(Style.space(840))',
             'TacticalDisplayShell {',
-            'nativePanelMode: true',
-            'showViewportFrame: false',
-            'ThemeAdapter { id: themeAdapter; popupSurface: true }',
+            'ThemeAdapter { id: themeAdapter }',
         ):
             self.assertIn(token, panel)
         self.assertNotIn('PanelWindow {', panel)
@@ -124,7 +122,7 @@ class QmlContractTests(unittest.TestCase):
     def test_overlay_escape_is_immediate_and_density_status_is_outside_field(self):
         shell = (ROOT / 'core/TacticalDisplayShell.qml').read_text()
         nav = (ROOT / 'core/NavigationController.qml').read_text()
-        self.assertIn('event.key === Qt.Key_Escape) { dismissRequested()', nav)
+        self.assertIn('event.key === Qt.Key_Escape) { dismissRequested("escape")', nav)
         self.assertIn('event.key === Qt.Key_Backspace) back()', nav)
         self.assertIn('event.key === Qt.Key_R) reset()', nav)
         self.assertNotIn('text: "? Legend"', shell)
@@ -135,20 +133,23 @@ class QmlContractTests(unittest.TestCase):
         self.assertLess(shell.index('id: field'), shell.index('id: densityStatus'))
         self.assertIn('ESC close  /  BACKSPACE back', shell)
 
-    def test_shell_has_explicit_outer_viewport_frame(self):
+    def test_overlay_uses_native_popup_frame_outside_shared_content(self):
         shell = (ROOT / 'core/TacticalDisplayShell.qml').read_text()
         for token in (
-            'property bool nativePanelMode: false',
-            'readonly property int margin: root.nativePanelMode ? 0 : Math.max(Style.spacing.xl, Math.min(Style.space(20), width * 0.012))',
-            'property bool showViewportFrame: true',
-            'readonly property int frameInset: Style.spacing.sm',
-            'id: viewportFrame',
-            'visible: root.showViewportFrame',
-            'anchors.margins: root.frameInset',
-            'border.color: root.theme.colors.accent',
-            'border.width: Style.space(2)',
+            'Ui.BorderSurface {',
+            'borderSpec: Border.surfaceSpec("popups", "border", Color.popups.border, Math.max(1, Style.space(2)))',
+            'color: Color.popups.background',
+            'padding: Style.space(8)',
+            'radius: Style.cornerRadius',
+            'anchors.topMargin: frame.contentTopInset',
+            'anchors.rightMargin: frame.contentRightInset',
+            'anchors.bottomMargin: frame.contentBottomInset',
+            'anchors.leftMargin: frame.contentLeftInset',
         ):
-            self.assertIn(token, shell)
+            self.assertIn(token, self.overlay)
+        self.assertNotIn('viewportFrame', shell)
+        self.assertNotIn('nativePanelMode', shell)
+        self.assertNotIn('showViewportFrame', shell)
 
     def test_native_panel_chrome_matches_beam_deck_density_and_popup_style(self):
         panel = self.panel
@@ -157,24 +158,22 @@ class QmlContractTests(unittest.TestCase):
         sheet = (ROOT / 'core/CommandSheet.qml').read_text()
 
         for token in (
-            'nativePanelMode: true',
             'padding: Style.space(8)',
-            'ThemeAdapter { id: themeAdapter; popupSurface: true }',
+            'ThemeAdapter { id: themeAdapter }',
         ):
             self.assertIn(token, panel)
 
         for token in (
-            'readonly property int contentSpacing: root.nativePanelMode ? Style.spacing.xxl : root.compact ? Style.spacing.md : Style.spacing.xl',
+            'readonly property int contentSpacing: Style.spacing.xxl',
             'spacing: root.contentSpacing',
-            'spacing: root.nativePanelMode ? Style.spacing.xxl : Style.space(20)',
+            'spacing: Style.spacing.xxl',
             'leftPadding: Style.spacing.controlPaddingX',
             'topPadding: Style.spacing.inputPaddingY',
-            'compactChrome: root.nativePanelMode',
+            'compactChrome: true',
         ):
             self.assertIn(token, shell)
 
         for token in (
-            'property bool popupSurface: false',
             'Color.popups.background',
             'Color.popups.text',
             'Style.font.family',
@@ -183,6 +182,12 @@ class QmlContractTests(unittest.TestCase):
             'Style.font.title',
         ):
             self.assertIn(token, theme)
+        self.assertNotIn('popupSurface', theme)
+        self.assertNotIn('fontBaseSize', theme)
+        self.assertIn('ThemeAdapter { id: themeAdapter }', self.overlay)
+        for host in (panel, self.overlay):
+            self.assertNotIn('nativePanelMode:', host)
+            self.assertIn('theme: themeAdapter', host)
 
         for token in (
             'property bool compactChrome: false',
@@ -199,7 +204,7 @@ class QmlContractTests(unittest.TestCase):
             'id: headerBar',
             'id: identityBlock',
             'text: "TACTICAL DISPLAY"',
-            'font.pixelSize: root.nativePanelMode ? Style.font.subtitle : root.theme.titleSize',
+            'font.pixelSize: Style.font.subtitle',
             'Item { Layout.fillWidth: true }',
             'id: headerActions',
             'id: headerStatus',

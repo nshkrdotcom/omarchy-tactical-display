@@ -1,5 +1,6 @@
 import QtQuick
 import QtTest
+import qs.Commons
 import "../../core"
 import "../../visual"
 import "../../model/Settings.js" as Settings
@@ -19,14 +20,90 @@ TestCase {
         property int titleSize: 22
     }
     NavigationController { id: controller }
+    ThemeAdapter { id: hostTheme }
     Component { id: sheetComponent; OperatorSheet { controller: suite.subject; theme: testTheme } }
     Component { id: trendComponent; Trend { theme: testTheme } }
     Component { id: buttonComponent; InstrumentButton { paletteColors: testTheme.colors; chosen: true; text: "Selected choice" } }
     Component { id: shellComponent; TacticalDisplayShell { controller: suite.subject; theme: testTheme } }
     readonly property var subject: controller
+    function descendants(item) {
+        var result=[]
+        for(var i=0;i<item.children.length;i++) {
+            result.push(item.children[i])
+            result=result.concat(descendants(item.children[i]))
+        }
+        return result
+    }
+    function textItem(item,text) {
+        return descendants(item).filter(function(child){return child.text===text})[0]
+    }
     function init() {
         controller.close()
         controller.open(Settings.payload('{"instrument":"machine"}'))
+    }
+    function test_shared_theme_uses_native_popup_tokens_and_tracks_changes() {
+        var oldFont=Style.font,oldPopups=Color.popups
+        try {
+            compare(hostTheme.baseBackground,Color.popups.background)
+            compare(hostTheme.baseForeground,Color.popups.text)
+            compare(hostTheme.fontFamily,Style.font.family)
+            compare(hostTheme.smallSize,Style.font.caption)
+            compare(hostTheme.bodySize,Style.font.body)
+            compare(hostTheme.titleSize,Style.font.title)
+            Style.font={family:"serif",caption:16,body:20,subtitle:22,title:28}
+            Color.popups={background:"#ffffff",text:"#111111",border:"#334488"}
+            compare(hostTheme.fontFamily,"serif")
+            compare(hostTheme.smallSize,16)
+            compare(hostTheme.bodySize,20)
+            compare(hostTheme.titleSize,28)
+            compare(hostTheme.baseBackground,"#ffffff")
+            verify(hostTheme.colors.light,"A live popup-theme change must update both surfaces")
+        } finally { Style.font=oldFont;Color.popups=oldPopups }
+    }
+    function test_shared_header_preserves_native_geometry_data() {
+        return [{tag:"compact",surfaceWidth:900,surfaceHeight:640},
+            {tag:"wide",surfaceWidth:1260,surfaceHeight:740},
+            {tag:"large-monitor",surfaceWidth:1900,surfaceHeight:1040},
+            {tag:"native-small-type",surfaceWidth:1260,surfaceHeight:740,font:{family:"monospace",caption:10,body:12,subtitle:13,title:15}},
+            {tag:"larger-host-type",surfaceWidth:1260,surfaceHeight:740,font:{family:"monospace",caption:20,body:24,subtitle:26,title:30}}]
+    }
+    function test_shared_header_preserves_native_geometry(data) {
+        var oldFont=Style.font
+        try {
+            if(data.font)Style.font=data.font
+            checkSharedHeader(data)
+        } finally { Style.font=oldFont }
+    }
+    function checkSharedHeader(data) {
+        controller.setFlag("showIntro",false)
+        controller.setFlag("showPicker",false)
+        var s=createTemporaryObject(shellComponent,suite,{width:data.surfaceWidth,height:data.surfaceHeight,theme:hostTheme})
+        verify(s)
+        wait(0)
+        var title=textItem(s,"TACTICAL DISPLAY"),search=textItem(s,"/ Search"),close=textItem(s,"Close")
+        verify(title && search && close)
+        compare(title.font.pixelSize,Style.font.subtitle,"Both hosts must retain the clicked panel's main title size")
+        compare(title.font.family,Style.font.family)
+        fuzzyCompare(title.font.letterSpacing,0.4,1/64) // Qt quantizes font metrics.
+        compare(title.mapToItem(s,0,0).x,0,"Host containers own outer padding; shared content must not add a second inset")
+        compare(title.mapToItem(s,0,0).y,0)
+        var status=findChild(s,"providerStatus")
+        compare(status.font.pixelSize,Style.font.caption)
+        var rail=search.parent,header=rail.parent
+        compare(header.spacing,Style.spacing.huge)
+        compare(rail.spacing,Style.spacing.sm)
+        compare(rail.mapToItem(s,rail.width,0).x,s.width,"Action rail keeps its native right edge")
+        fuzzyCompare(rail.mapToItem(s,0,rail.height/2).y,header.height/2,0.5)
+        var actions=rail.children.filter(function(item){return item.visible && item.text!==undefined})
+        compare(actions.map(function(item){return item.text}).join("|"),data.surfaceWidth<1050?"/ Search|Freeze|Close":"/ Search|Freeze|Legend|Settings|Close")
+        actions.forEach(function(action){
+            compare(action.textSize,Style.font.caption)
+            compare(action.leftPadding,Style.spacing.controlPaddingX)
+            compare(action.topPadding,Style.spacing.controlPaddingY)
+            verify(action.mapToItem(s,0,0).x>=title.width,"Title and actions must not overlap")
+        })
+        var selector=textItem(s,"A Briefing").parent
+        compare(selector.mapToItem(s,0,0).y,header.height+Style.spacing.xxl,"No overlay-only purpose row or spacing before navigation")
     }
     function test_chosen_control_keeps_visible_keyboard_focus() {
         var b=createTemporaryObject(buttonComponent,suite,{width:180,height:40})

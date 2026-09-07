@@ -3,6 +3,8 @@ import QtQuick
 import Quickshell
 import Quickshell.Hyprland
 import Quickshell.Wayland
+import qs.Commons
+import qs.Ui as Ui
 import "core"
 import "model/Settings.js" as Settings
 
@@ -53,12 +55,15 @@ Item {
         opened=true
     }
     function close() {
+        console.debug("tactical-display lifecycle: host-close")
         opened=false
         navigation.close()
         targetScreen=""
         renderStatistics=({})
     }
-    function requestHide() {
+    function requestHide(reason) {
+        var known=["escape","back","close-control","native-panel","no-screens"]
+        console.debug("tactical-display lifecycle: hide-request/"+(known.indexOf(reason)>=0 ? reason : "unspecified"))
         if (shell && typeof shell.hide === "function") shell.hide(pluginId)
         else close()
     }
@@ -66,7 +71,7 @@ Item {
         // Only hard-coded observational shell panels may be invoked here.
         if (["omarchy.audio","omarchy.network"].indexOf(id)<0) return
         var host=shell
-        requestHide()
+        requestHide("native-panel")
         if (host && typeof host.summon === "function") host.summon(id,"{}")
     }
     onCurrentScreensChanged: {
@@ -74,7 +79,7 @@ Item {
         for (var i=0;i<currentScreens.length;i++) if (String(currentScreens[i].name)===targetScreen) present=true
         if (opened && !present) {
             targetScreen=chooseScreen("")
-            if (!targetScreen) requestHide()
+            if (!targetScreen) requestHide("no-screens")
         }
     }
     Configuration { id: preferences; host: root.shell; pluginId: root.pluginId }
@@ -83,7 +88,7 @@ Item {
         id: navigation
         configuration: preferences
         telemetry: telemetryService
-        onDismissRequested: root.requestHide()
+        onDismissRequested: reason => root.requestHide(reason)
     }
     Telemetry {
         id: telemetryService
@@ -106,20 +111,33 @@ Item {
             WlrLayershell.namespace: "nshkr-tactical-display"
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: surface.visible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
-            Loader {
+            Ui.BorderSurface {
+                id: frame
                 anchors.fill: parent
-                active: surface.visible
-                sourceComponent: TacticalDisplayShell {
-                    id: displayShell
-                    controller: navigation
-                    theme: themeAdapter
-                    active: root.opened
-                    onStatisticsChanged: root.renderStatistics=displayShell.statistics
-                    Component.onCompleted: root.renderStatistics=displayShell.statistics
-                    onNativePanelRequested: id => root.openNativePanel(id)
+                // Same border contract and content inset as Ui.KeyboardPanel.
+                color: Color.popups.background
+                borderSpec: Border.surfaceSpec("popups", "border", Color.popups.border, Math.max(1, Style.space(2)))
+                padding: Style.space(8)
+                radius: Style.cornerRadius
+                Loader {
+                    anchors.fill: parent
+                    anchors.topMargin: frame.contentTopInset
+                    anchors.rightMargin: frame.contentRightInset
+                    anchors.bottomMargin: frame.contentBottomInset
+                    anchors.leftMargin: frame.contentLeftInset
+                    active: surface.visible
+                    sourceComponent: TacticalDisplayShell {
+                        id: displayShell
+                        controller: navigation
+                        theme: themeAdapter
+                        active: root.opened
+                        onStatisticsChanged: root.renderStatistics=displayShell.statistics
+                        Component.onCompleted: root.renderStatistics=displayShell.statistics
+                        onNativePanelRequested: id => root.openNativePanel(id)
+                    }
                 }
             }
         }
     }
-    Component.onDestruction: { opened=false; telemetryService.stop() }
+    Component.onDestruction: { console.debug("tactical-display lifecycle: overlay-destroy"); opened=false; telemetryService.stop() }
 }
