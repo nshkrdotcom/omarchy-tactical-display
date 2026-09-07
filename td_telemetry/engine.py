@@ -233,8 +233,14 @@ class TelemetryEngine:
         data['events'] = self.events.events(now)
         if 'machine' in active:
             m = data['system']
+            pressure = m.get('pressure') or {}
+            def stall(resource: str, scope: str) -> float | None:
+                return ((pressure.get(resource) or {}).get(scope) or {}).get('avg10')
             data['trend'] = self.trend.add(now, {'cpuPercent': m.get('cpuPercent'), 'memoryUsedBytes': m.get('memory', {}).get('usedBytes'),
                                                 'netRxBps': m.get('netRxBps'), 'netTxBps': m.get('netTxBps'),
+                                                'cpuSomePercent': stall('cpu', 'some'),
+                                                'memorySomePercent': stall('memory', 'some'), 'memoryFullPercent': stall('memory', 'full'),
+                                                'ioSomePercent': stall('io', 'some'), 'ioFullPercent': stall('io', 'full'),
                                                 'readBps': data['storage']['summary'].get('readBps'), 'writeBps': data['storage']['summary'].get('writeBps')})
         self.full = data
         self.socket_store = socket_store

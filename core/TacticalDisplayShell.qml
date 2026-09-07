@@ -376,7 +376,7 @@ FocusScope {
             readonly property bool detailRight: width>=Style.space(870)
             readonly property real detailWidth: hasDetail && detailRight ? Math.min(Style.space(380),Math.max(Style.space(300),width*0.24)) : 0
             readonly property real detailHeight: hasDetail && !detailRight ? Math.max(0,Math.min(Style.space(260),height-Style.space(240))) : 0
-            readonly property real trendHeight: root.controller.navState.instrument==="machine" && root.controller.navState.trend ? Math.min(Style.space(120),height*0.24) : 0
+            readonly property real trendHeight: root.controller.navState.instrument==="machine" && root.controller.navState.trend ? Math.min(Style.space(200),height*0.4) : 0
             Visual.Field {
                 id: field
                 x: 0; y: 0
@@ -406,6 +406,7 @@ FocusScope {
                 visible: height>0
                 theme: root.theme
                 samples: root.controller.displayFrame.trend||[]
+                intervalSeconds: root.controller.displayFrame.intervalSeconds || 1
                 selectedKey: root.controller.navState.focusKey || root.controller.navState.selectedKey || "subsystem:cpu"
             }
             InspectionPanel {

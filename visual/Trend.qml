@@ -1,70 +1,153 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Layouts
 import qs.Commons
-import "../model/InstrumentModel.js" as Instruments
+import "../core"
+import "../model/Operator.js" as Operator
+import "TrendModel.js" as TrendModel
 
-Item {
+FocusScope {
     id: root
     required property var theme
     property var samples: []
     property string selectedKey: "subsystem:cpu"
-    readonly property var series: selectedKey === "subsystem:memory" ? [{key:"memoryUsedBytes",name:"Used memory",role:"accent"}] : selectedKey === "subsystem:storage" ? [{key:"readBps",name:"Read",role:"read"},{key:"writeBps",name:"Write",role:"write"}] : selectedKey === "subsystem:network" ? [{key:"netRxBps",name:"Receive",role:"inbound"},{key:"netTxBps",name:"Transmit",role:"outbound"}] : [{key:"cpuPercent",name:"CPU",role:"accent"}]
-    readonly property bool rate: selectedKey === "subsystem:storage" || selectedKey === "subsystem:network"
-    readonly property bool percent: series[0].key === "cpuPercent"
-    readonly property real ceiling: {
-        var maxValue = percent ? 100 : 0
-        for (var i=0;i<samples.length;i++) for (var j=0;j<series.length;j++) {
-            var v=samples[i][series[j].key]
-            if (typeof v === "number" && isFinite(v)) maxValue=Math.max(maxValue,v)
-        }
-        return maxValue || 1
+    property real intervalSeconds: 1
+    property int windowSeconds: 60
+    property string metric: "usage"
+    property var cursorAt: null
+    property bool cursorLocked: false
+    readonly property bool pressureAvailable: ["subsystem:cpu","subsystem:memory","subsystem:storage"].indexOf(selectedKey)>=0
+    readonly property var plot: TrendModel.build(samples,selectedKey,{seconds:windowSeconds,metric:metric,interval:intervalSeconds,width:trace.width,height:trace.height})
+    readonly property var inspection: TrendModel.inspect(plot,cursorAt)
+    readonly property string summary: {
+        return plot.traces.map(function(t,index) {
+            var value = root.inspection ? root.inspection.values[index].value : t.stats.current
+            return (t.dashed ? "┄ " : "━ ")+t.name+": "+Operator.format(value,root.plot.unit)+
+                "  ["+Operator.format(t.stats.min,root.plot.unit)+"–"+Operator.format(t.stats.max,root.plot.unit)+"]"
+        }).join("    ")
     }
-    Rectangle { anchors.fill: parent; color: root.theme.colors.panel; radius: Style.cornerRadius }
-    Row {
-        id: legend
-        x: Style.spacing.xxl; y: Style.spacing.lg; spacing: Style.spacing.huge
-        Repeater {
-            model: root.series
-            delegate: Text {
-                required property var modelData
-                text: modelData.name + (root.samples.length ? ": " + (root.percent ? Instruments.percent(root.samples[root.samples.length-1][modelData.key]) : Instruments.bytes(root.samples[root.samples.length-1][modelData.key],root.rate)) : ": awaiting samples")
-                textFormat: Text.PlainText
-                color: root.theme.colors[modelData.role]
-                font.family: root.theme.fontFamily
-                font.pixelSize: root.theme.smallSize
-            }
-        }
+    activeFocusOnTab: visible
+    Accessible.role: Accessible.Chart
+    Accessible.name: (metric === "pressure" ? "Stall pressure trend. " : "Resource trend. ")+summary
+    Accessible.description: "Left and Right inspect measured samples. Home and End jump to first and last. Space returns to live. Brackets show measured minimum and maximum."
+    function resume() { cursorAt=null; cursorLocked=false }
+    Keys.onPressed: event => {
+        if (event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) return
+        if (event.key === Qt.Key_Left || event.key === Qt.Key_Right) {
+            cursorAt=TrendModel.step(plot,cursorAt,event.key === Qt.Key_Left ? -1 : 1)
+            cursorLocked=true
+        } else if (event.key === Qt.Key_Home || event.key === Qt.Key_End) {
+            cursorAt=plot.samples.length ? plot.samples[event.key === Qt.Key_Home ? 0 : plot.samples.length-1].at : null
+            cursorLocked=true
+        } else if (event.key === Qt.Key_Space) resume()
+        else return
+        event.accepted=true
     }
-    Text { anchors.right: parent.right; anchors.top: parent.top; anchors.margins: Style.spacing.lg; text: "Last 60 seconds"; textFormat: Text.PlainText; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize; visible: root.width > Style.space(570) }
-    Canvas {
-        id: trace
+    Rectangle { anchors.fill: parent; color: root.theme.colors.panel; radius: Style.cornerRadius; border.color: root.activeFocus ? root.theme.colors.accent : root.theme.colors.line; border.width: Style.spacing.hairline }
+    ColumnLayout {
         anchors.fill: parent
-        anchors.leftMargin: Style.spacing.xxl; anchors.rightMargin: Style.spacing.xxl; anchors.topMargin: legend.height+Style.spacing.huge; anchors.bottomMargin: Style.spacing.xl
-        antialiasing: true
-        onPaint: {
-            var c=getContext("2d")
-            c.clearRect(0,0,width,height)
-            c.strokeStyle=root.theme.colors.line; c.lineWidth=Style.spacing.hairline
-            c.beginPath();c.moveTo(0,height-1);c.lineTo(width,height-1);c.stroke()
-            if (!root.samples.length) return
-            var end=root.samples[root.samples.length-1].at
-            for (var j=0;j<root.series.length;j++) {
-                c.strokeStyle=root.theme.colors[root.series[j].role];c.lineWidth=j===0?Style.space(2):Style.spacing.hairline
-                c.beginPath();var started=false
-                for (var i=0;i<root.samples.length;i++) {
-                    var s=root.samples[i],v=s[root.series[j].key]
-                    if (typeof v!=="number" || !isFinite(v) || end-s.at>60) {started=false;continue}
-                    var x=width*(1-(end-s.at)/60),y=height-3-Math.max(0,v)/root.ceiling*(height-6)
-                    if (!started) c.moveTo(x,y); else c.lineTo(x,y)
-                    started=true
+        anchors.margins: Style.spacing.lg
+        spacing: Style.spacing.sm
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: Style.spacing.sm
+            Repeater {
+                model: [15,30,60]
+                delegate: InstrumentButton {
+                    required property int modelData
+                    text: modelData+"s"
+                    chosen: root.windowSeconds === modelData
+                    paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize
+                    onClicked: { root.windowSeconds=modelData; root.resume() }
                 }
-                c.stroke()
+            }
+            InstrumentButton {
+                visible: root.pressureAvailable
+                text: root.metric === "pressure" ? "PSI avg10" : "Usage"
+                hint: "Toggle usage and measured stall pressure. Some / all non-idle tasks use separate traces."
+                chosen: root.metric === "pressure"
+                paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize
+                onClicked: { root.metric=root.metric === "pressure" ? "usage" : "pressure"; root.resume() }
+            }
+            Item { Layout.fillWidth: true }
+            InstrumentButton {
+                text: root.cursorLocked ? "Return to live" : "Inspect ← →"
+                hint: "Click to focus chart; Left/Right, Home/End inspect samples; Space returns to live"
+                paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize
+                onClicked: { root.resume(); root.forceActiveFocus() }
             }
         }
-        onWidthChanged: requestPaint()
-        onHeightChanged: requestPaint()
+        Text {
+            Layout.fillWidth: true
+            text: root.summary
+            textFormat: Text.PlainText
+            elide: Text.ElideRight
+            color: root.theme.colors.foreground
+            font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize
+        }
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.fillHeight: true
+            spacing: Style.spacing.md
+            ColumnLayout {
+                Layout.fillHeight: true
+                Text { text: Operator.format(root.plot.ceiling,root.plot.unit); textFormat: Text.PlainText; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
+                Item { Layout.fillHeight: true }
+                Text { text: "0"; textFormat: Text.PlainText; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
+            }
+            Canvas {
+                id: trace
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                antialiasing: true
+                onPaint: {
+                    var c=getContext("2d"), plot=root.plot
+                    c.clearRect(0,0,width,height)
+                    c.lineWidth=1; c.strokeStyle=root.theme.colors.line; c.setLineDash([])
+                    for (var level=0;level<=2;level++) {
+                        var y=Math.max(1,Math.min(height-1,height*level/2))
+                        c.beginPath(); c.moveTo(0,y); c.lineTo(width,y); c.stroke()
+                    }
+                    for (var j=0;j<plot.traces.length;j++) {
+                        var t=plot.traces[j]
+                        c.strokeStyle=root.theme.colors[t.role]; c.fillStyle=root.theme.colors[t.role]; c.lineWidth=2
+                        c.setLineDash(t.dashed ? [5,4] : [])
+                        for (var k=0;k<t.paths.length;k++) {
+                            var path=t.paths[k]
+                            c.beginPath()
+                            for (var i=0;i<path.length;i++) {
+                                var p=path[i], py=Math.max(1,Math.min(height-1,p.y))
+                                if (i===0) c.moveTo(p.x,py); else c.lineTo(p.x,py)
+                            }
+                            c.stroke()
+                            if (path.length===1) {c.beginPath();c.arc(path[0].x,Math.max(2,Math.min(height-2,path[0].y)),2,0,Math.PI*2);c.fill()}
+                        }
+                    }
+                    c.setLineDash([])
+                    if (root.inspection) {
+                        c.strokeStyle=root.theme.colors.foreground; c.lineWidth=1
+                        c.beginPath(); c.moveTo(root.inspection.x,0); c.lineTo(root.inspection.x,height); c.stroke()
+                    }
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.CrossCursor
+                    onPositionChanged: mouse => { if (!root.cursorLocked || pressed) root.cursorAt=root.plot.start+mouse.x/Math.max(1,width)*root.plot.seconds }
+                    onClicked: mouse => { root.cursorAt=root.plot.start+mouse.x/Math.max(1,width)*root.plot.seconds; root.cursorLocked=true; root.forceActiveFocus() }
+                    onExited: if (!root.cursorLocked) root.cursorAt=null
+                }
+            }
+        }
+        Text {
+            Layout.fillWidth: true
+            text: root.cursorAt !== null ? root.inspection ? "Measured "+Math.max(0,root.plot.end-root.inspection.at).toFixed(1)+"s ago · "+(root.cursorLocked ? "cursor held" : "hover") : "No observed sample at cursor · acquisition gap or expired window" : "−"+root.windowSeconds+"s → latest · hover or click to inspect · gaps mean no observation"
+            textFormat: Text.PlainText; elide: Text.ElideRight
+            color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize
+        }
     }
-    onSamplesChanged: trace.requestPaint()
-    onSeriesChanged: trace.requestPaint()
+    onPlotChanged: trace.requestPaint()
+    onInspectionChanged: trace.requestPaint()
+    onSelectedKeyChanged: { if (!pressureAvailable) metric="usage"; resume() }
     Connections { target: root.theme; function onColorsChanged() { trace.requestPaint() } }
 }

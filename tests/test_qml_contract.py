@@ -231,8 +231,8 @@ class QmlContractTests(unittest.TestCase):
             self.assertIn(token, button)
         self.assertIn('anchors.margins: Style.spacing.huge', inspection)
         self.assertIn('radius: Style.cornerRadius', inspection)
-        self.assertIn('spacing: Style.spacing.huge', trend)
-        self.assertIn('anchors.bottomMargin: Style.spacing.xl', trend)
+        self.assertIn('spacing: Style.spacing.sm', trend)
+        self.assertIn('anchors.margins: Style.spacing.lg', trend)
 
     def test_picker_has_explicit_keyboard_navigation(self):
         sheet = (ROOT / 'core/CommandSheet.qml').read_text()
