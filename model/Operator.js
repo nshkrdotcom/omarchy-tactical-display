@@ -7,12 +7,14 @@ function displayName(row, privacy) {
     if (!privacy || row.kind === 'subsystem') return clean(row.name || row.kind || 'Observed entity');
     var key = String(row.entityKey || row.key || ''), hash = 2166136261;
     for (var i=0; i<key.length; i++) { hash ^= key.charCodeAt(i); hash = Math.imul(hash,16777619); }
-    return clean(row.kind || 'entity').toUpperCase() + '-' + ('00000000'+(hash>>>0).toString(16).toUpperCase()).slice(-8);
+    // This identity vocabulary is shared with InstrumentModel.alias; parity is tested.
+    var prefix={application:'APP',process:'PROC',remote:'HOST',mount:'MOUNT',device:'DISK',stream:'STREAM',sink:'SINK',source:'SOURCE','audio-device':'DEVICE',listener:'PORT'}[row.kind]||'ENTITY';
+    return prefix + '-' + ('00000000'+(hash>>>0).toString(16).toUpperCase()).slice(-8);
 }
 function providerState(frame, id, now) {
     var c = (frame.capabilities || {})[id];
     if (!c) return 'unavailable';
-    if (c.status !== 'available' && c.status !== 'partial') return c.status === 'inactive' ? 'inactive' : 'unavailable';
+    if (c.status !== 'available' && c.status !== 'partial') return c.status === 'inactive' ? 'inactive' : c.status === 'stale' ? 'stale' : 'unavailable';
     now = finite(now) ? now : frame.monotonic;
     if (!finite(now) || !finite(c.sampledAt) || c.sampledAt > now + 1 || now-c.sampledAt > Math.max(3.5, (measured(c.intervalSeconds) || 1)*4)) return 'stale';
     return c.status;
@@ -44,12 +46,13 @@ function assess(frame, options) {
                 'machine','subsystem:memory','/proc/meminfo · MemAvailable / MemTotal');
         }
     }
-    if (usable(providerState(frame,'storage',now))) {
+    var storage=providerState(frame,'storage',now);
+    if (usable(storage)) {
         rows((frame.storage||{}).mounts).slice(0,4096).forEach(function(m) {
             var c=m.capacity||{}, total=measured(c.totalBytes), available=measured(c.availableBytes);
             if (m.closed || !(total>0) || available===null || available/total>=0.10 || !finite(c.sampledAt) || c.sampledAt>now+1 || now-c.sampledAt>30) return;
             var name=displayName({key:m.key,kind:'mount',name:m.path||m.name},options.privacy);
-            add('capacity:'+m.key,available/total<0.03?'high':'watch','Low filesystem space',name+' · '+(available/total*100).toFixed(1)+'% available · sampled '+Math.max(0,now-c.sampledAt).toFixed(0)+'s ago',
+            add('capacity:'+m.key,available/total<0.03?'high':'watch','Low filesystem space',name+' · '+(available/total*100).toFixed(1)+'% available · sampled '+Math.max(0,now-c.sampledAt).toFixed(0)+'s ago'+(storage==='partial'?' · partial provider':''),
                 'Inspect the mount and backing device. Capacity does not measure per-mount throughput.',
                 'storage',m.key,'statvfs · safe local filesystem capacity, cached up to 15 seconds');
         });
@@ -58,6 +61,7 @@ function assess(frame, options) {
         if (!(frame.capabilities||{})[id]) return;
         var state=providerState(frame,id,now);
         if (state==='available' || state==='inactive') return;
+        if ((id==='gpu' || id==='thermal') && state==='unavailable') return;
         add('provider:'+id,'info','Check '+id+' data',id+' provider is '+state,
             'Open data sources for collection scope, sample age and recovery details.', 'capabilities','', 'Provider capability and timestamp');
     });
@@ -66,6 +70,17 @@ function assess(frame, options) {
 }
 
 var domains = {process:'processes',relationship:'connection',remote:'connection',listener:'connection',mount:'storage','audio-node':'audio','audio-link':'audio',pressure:'machine'};
+function scalarSummary(row) {
+    var parts=[];
+    if (measured(row.cpuPercent)!==null) parts.push(format(row.cpuPercent,'percent')+' CPU (100% = one core)');
+    if (measured(row.rssBytes)!==null) parts.push(format(row.rssBytes,'bytes')+' RSS');
+    if (measured(row.socketCount)!==null) parts.push(row.socketCount+' sockets');
+    if (measured(row.readBps)!==null) parts.push('R '+format(row.readBps,'rate'));
+    if (measured(row.writeBps)!==null) parts.push('W '+format(row.writeBps,'rate'));
+    if (measured((row.capacity||{}).availableBytes)!==null) parts.push(format(row.capacity.availableBytes,'bytes')+' available');
+    if (typeof row.mute==='boolean') parts.push(row.mute?'Muted':'Unmuted');
+    return parts.join(' · ') || 'No comparable scalar metrics';
+}
 function entityIndex(frame, wanted) {
     var out=Object.create(null), n=frame.network||{}, s=frame.storage||{}, a=frame.audio||{};
     var collections=[[frame.processes,'process'],[frame.groups,'application'],[n.processes,'application'],[n.instances,'process'],[n.remotes,'remote'],[n.links,'relationship'],[n.instanceLinks,'relationship'],[n.listeners,'listener'],[s.mounts,'mount'],[s.devices,'device'],[s.contributors,'process'],[a.nodes,'audio-node'],[a.devices,'audio-device'],[a.links,'audio-link']];
@@ -77,7 +92,7 @@ function entityIndex(frame, wanted) {
             if (kind==='relationship') name=name||'Network relationship';
             if (kind==='audio-link') name='Audio route';
             if (kind==='audio-node') kind=r.kind||kind;
-            if (!out[r.key]) out[r.key]={key:r.key,kind:kind,name:clean(name||kind),closed:r.closed===true};
+            if (!out[r.key]) out[r.key]={key:r.key,kind:kind,name:clean(name||kind),closed:r.closed===true,groupKey:r.groupKey||'',metrics:scalarSummary(r)};
         });
     });
     ['cpu','memory','storage','network','gpu','thermal'].forEach(function(id) {
@@ -99,20 +114,28 @@ function ingest(session, frame) {
     var seenRows=rows(session.seen).filter(function(e){return now-e.at<=300;});
     seenRows.forEach(function(e){seen[e.key]=true;});
     incoming.forEach(function(e) {
-        if (!e || typeof e.key!=='string' || e.key.length>512 || typeof e.entityKey!=='string' || e.entityKey.length>512 || !domains[e.domain] || ['opened','changed','closed'].indexOf(e.kind)<0 || !finite(e.at) || e.at>now || now-e.at>300 || seen[e.key]) return;
+        if (!e || typeof e.key!=='string' || e.key.length>512 || typeof e.entityKey!=='string' || e.entityKey.length>512 || !Object.prototype.hasOwnProperty.call(domains,e.domain) || ['opened','changed','closed'].indexOf(e.kind)<0 || !finite(e.at) || e.at>now || now-e.at>300 || seen[e.key]) return;
         seen[e.key]=true; seenRows.push({key:e.key,at:e.at});
         var r=index[e.entityKey]||names[e.entityKey]||{kind:e.domain,name:'Entity no longer in collected scope'};
-        retained.push({key:e.key,entityKey:e.entityKey,domain:e.domain,kind:e.kind,entityKind:r.entityKind||r.kind,name:r.name,at:e.at,instrument:domains[e.domain]});
+        retained.push({key:e.key,entityKey:e.entityKey,domain:e.domain,kind:e.kind,entityKind:r.entityKind||r.kind,name:r.name,at:e.at,instrument:domains[e.domain],groupKey:r.groupKey||''});
     });
     retained.sort(function(a,b){return b.at-a.at || a.key.localeCompare(b.key);});
     return {at:now,sequence:frame.sequence,events:retained.slice(0,120),seen:seenRows.slice(-2048)};
+}
+function freezeSession(session, frame) {
+    // Freeze replies can arrive after newer live frames. Trim by the pinned time
+    // without interpreting that intentional rewind as a helper restart.
+    var held={at:frame.monotonic,sequence:frame.sequence,
+        events:rows(session.events).filter(function(e){return e.at<=frame.monotonic;}),
+        seen:rows(session.seen).filter(function(e){return e.at<=frame.monotonic;})};
+    return ingest(held,frame);
 }
 function activity(session, options) {
     options=options||{};
     return rows((session||{}).events).filter(function(e) {
         return (!options.instrument || options.instrument==='all' || e.instrument===options.instrument) && (!options.kind || options.kind==='all' || e.kind===options.kind);
     }).map(function(e) {
-        return {key:e.key,entityKey:e.entityKey,domain:e.domain,kind:e.kind,instrument:e.instrument,at:e.at,
+        return {key:e.key,entityKey:e.entityKey,domain:e.domain,kind:e.kind,instrument:e.instrument,at:e.at,groupKey:e.groupKey||'',
             name:displayName({entityKey:e.entityKey,kind:e.entityKind,name:e.name},options.privacy),
             age:Math.max(0,((session||{}).at||e.at)-e.at).toFixed(0)+'s ago'};
     });
@@ -122,14 +145,18 @@ function togglePin(pins, entity, instrument) {
     if (!entity || !entity.key) return pins;
     if (pins.some(function(p){return p.key===entity.key;})) return pins.filter(function(p){return p.key!==entity.key;});
     if (pins.length>=8) return pins;
-    return pins.concat([{key:entity.key,name:clean(entity.name),kind:entity.kind||'entity',instrument:instrument}]);
+    var raw=entity.raw||{};
+    return pins.concat([{key:entity.key,name:clean(raw.name||raw.path||raw.address||entity.name),kind:entity.kind||'entity',instrument:instrument,groupKey:raw.groupKey||entity.groupKey||''}]);
 }
-function pinRows(pins, frame, privacy) {
+function pinRows(pins, frame, privacy, now) {
     var wanted=Object.create(null); rows(pins).forEach(function(p){wanted[p.key]=true;});
     var index=entityIndex(frame||{},wanted);
     return rows(pins).map(function(p) {
         var r=index[p.key];
-        return {key:p.key,entityKey:p.key,name:displayName(r||p,privacy),kind:p.kind,instrument:p.instrument,status:!r?'not observed':r.closed?'ended':'observed'};
+        var provider=p.kind==='subsystem'?'machine':['process','application'].indexOf(p.kind)>=0?'processes':p.instrument==='connection'?'network':p.instrument==='audio'?'audio':'storage';
+        var quality=providerState(frame||{},provider,now), status=!r?'not observed':r.closed?'ended':quality==='available'?'observed':quality;
+        return {key:p.key,entityKey:p.key,name:displayName(r||p,privacy),kind:p.kind,instrument:p.instrument,groupKey:p.groupKey||'',status:status,
+            metrics:r && !r.closed && usable(quality)?r.metrics||'No comparable scalar metrics':'Metrics unavailable'};
     });
 }
 
@@ -181,9 +208,9 @@ function report(frame, session, pins, baseline, options) {
     if (!baseline) out.push('No baseline captured.');
     compare(baseline,frame,options).forEach(function(r){out.push(r.label+': '+r.before+' → '+r.current+' ('+r.change+'; '+r.quality+')');});
     out.push('', 'Pinned entities');
-    pinRows(pins,frame,options.privacy).forEach(function(r){out.push(r.name+' / '+r.kind+' / '+r.status);});
+    pinRows(pins,frame,options.privacy,options.now).forEach(function(r){out.push(r.name+' / '+r.kind+' / '+r.status+' / '+r.metrics);});
     out.push('', 'Recent activity / observed lifecycle events');
     activity(session,{privacy:options.privacy}).slice(0,20).forEach(function(r){out.push(r.age+' / '+r.kind+' / '+r.name);});
     return out.join('\n');
 }
-if (typeof module!=='undefined') module.exports={providerState:providerState,assess:assess,freshSession:freshSession,ingest:ingest,activity:activity,togglePin:togglePin,pinRows:pinRows,captureBaseline:captureBaseline,compare:compare,report:report,format:format,displayName:displayName};
+if (typeof module!=='undefined') module.exports={providerState:providerState,assess:assess,freshSession:freshSession,ingest:ingest,freezeSession:freezeSession,activity:activity,togglePin:togglePin,pinRows:pinRows,captureBaseline:captureBaseline,compare:compare,report:report,format:format,displayName:displayName};

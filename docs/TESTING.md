@@ -16,6 +16,12 @@ Fixtures are fictional and test-only. They never replace real Linux/PipeWire/nat
 
 `scripts/validate.sh` runs the source suites, `scripts/release-gate.py --source-only`, Python and shell syntax checks, Omarchy manifest validation when available, and native QML lint when the Omarchy import tree is available. `--require-native` exits non-zero/77 if native validation cannot run.
 
+## Operator model and Qt interaction tests
+
+The Node suite also executes `Operator`, `Scroll` and `TrendModel`: evidence freshness and PSI semantics, privacy parity with the field, exact key retention, high-churn bounds, late freeze ordering, baseline units, timestamp-gap path segmentation, measured scales and cursor navigation. Python exercises actual engine PSI history. When Qt Test is installed, `tests/qml` runs the production controller and `tests/qml_surfaces` exercises the real briefing, trend and shared shell: compact scrolling, delegate focus preservation, chosen-state focus borders, keyboard status activation and chart inspection.
+
+Component tests use isolated `qs.Commons` style and Quickshell clipboard adapters because the native host's statically linked plugin modules are not loadable by standalone `qmltestrunner`. They do not substitute fake telemetry into production and are not native screenshot evidence. Native lint uses a temporary external `qs` import mapping and treats unresolved imports as errors; its regression test verifies both valid host imports and a deliberately missing module. Dynamic host-property warnings still require runtime verification.
+
 ## Publication contract regression checks
 
 The repository tests also enforce the file-level marketplace contract that is under source control:

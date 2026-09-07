@@ -53,6 +53,10 @@ Process restart is capped at six retries with exponential backoff up to 30 secon
 
 ## Context and UI state
 
+`Operator.js` derives bounded triage findings from capability-qualified observations and maintains compact session activity. The controller owns up to eight pins, one scalar baseline, a 120-event/five-minute timeline, and the frozen timeline. It retains no additional full-frame history. OperatorSheet is loaded on demand; keyed ListModels update rows without destroying focused delegates. Exact operator navigation resolves nodes and relationships without identity fallback, retaining application scope for demand-collected network instances. The report uses an explicit redacted text projection.
+
+`TrendModel.js` owns timestamp geometry, missing/gap segmentation, shared scales, summary statistics and cursor semantics. `Trend.qml` repaints on sample, cursor, theme or geometry changes; it does not add a visual timer. Kernel some/full PSI values extend the existing 60-second/120-sample aggregate ring without retaining process/socket history.
+
 The context carries process instance, application, remote, mount, device, audio and subsystem keys, never only a recyclable PID. Missing destination context produces a notice and retains the available view. Focus history is capped at 24. Selection survives replacement snapshots; a departed selected record remains inspectable until reset/back/close. Freeze is not persisted. Preferences and last instrument use native inline settings; raw history does not.
 
 Application identity prefers meaningful application/cgroup data, then canonical executable identity and ownership, with runtime ancestry/instance disambiguation for generic interpreters. Network groups and process groups use the same IDs. Audio process metadata is client-reported and is explicitly not a security identity.

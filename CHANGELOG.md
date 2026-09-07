@@ -4,6 +4,24 @@ All notable changes to Tactical Display are documented in this file.
 
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and this project uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- Operator briefing with explainable PSI and capacity findings, provider quality and exact-entity inspection links.
+- Five-minute bounded activity history, instrument/lifecycle filters, eight session pins with current metrics, aggregate baseline comparison and a privacy-aware clipboard report.
+- Interactive 15/30/60-second trends, usage/PSI lenses, missing-data gaps, measured scales, solid/dashed paired traces and pointer/keyboard inspection.
+- Production-model regression tests and real Qt controller/control tests, with isolated style and clipboard adapters for portable component testing.
+
+### Fixed
+
+- Live activity refresh now preserves focused delegates; selected buttons retain a visible focus outline.
+- Command sheets scroll the actual Flickable to reveal keyboard-focused controls.
+- Late freeze replies preserve prior activity without mixing in future events; retained aliases match the field.
+- Exact relationship and demand-scoped process pins can be reopened without falling back to another entity.
+- Native lint maps Quickshell's `qs` import root and fails on missing imports.
+- Provider status supports keyboard and accessibility activation with visible focus.
+
 ## [1.0.0] - 2026-09-06
 
 ### Added

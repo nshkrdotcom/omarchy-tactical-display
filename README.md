@@ -29,6 +29,9 @@ Switch between instruments at any time by pressing `1` through `5`:
 - **Ephemeral collection**: the telemetry helper runs only while a Tactical Display surface is open and is terminated on dismissal.
 - **Screen-share privacy mode**: `P` masks process/network identity and uses an opaque presentation.
 - **Snapshot freeze**: `Space` captures a stable inspection snapshot while collection continues behind it.
+- **Operator briefing**: `A` opens prioritized pressure/capacity findings, recent activity, pinned entities and before/after comparisons, with direct inspection links.
+- **Investigation continuity**: retain five minutes of observed changes, pin up to eight entities with `W`, and copy a privacy-aware report. All investigation state clears on dismissal.
+- **Interactive trends**: inspect 15/30/60-second usage or PSI histories with measured scales, missing-data gaps, distinct paired traces and pointer/keyboard cursors.
 - **Theme adaptive**: colors and contrast derive from the active Omarchy theme.
 - **Unprivileged and local-first**: core providers read user-accessible `/proc`, sysfs, and local desktop services. No packet capture, privileged daemon, cloud analytics, or required root access.
 - **Resource-contained by design**: collection uses absolute/global work budgets, canonical socket-detail storage, demand-scoped per-process network topology, generation-pinned freeze, constructively bounded transport, adaptive sampling backoff, and supervised helper recovery.
@@ -119,8 +122,12 @@ Tactical Display keeps the same product-specific bare-key map in both its native
 | `R` | Reset the current view |
 | `Escape` | Dismiss immediately |
 | `F6` | Toggle focus between the visualization and controls |
+| `A` | Open the operator briefing |
+| `W` | Pin / unpin the selected entity for this session |
 
 Instrument-specific controls are listed in the in-app legend. Notable shortcuts include `V` for connection/storage/audio lenses, `E` for process emphasis, `T` for machine trends, and `L`/`O` for Connection Field listener/loopback visibility.
+
+The [operator workflow guide](docs/OPERATOR-WORKFLOWS.md) explains findings, activity, pins, baseline comparisons and trend inspection, including their evidence limits. In a focused trend chart, `Left`/`Right` inspect samples, `Home`/`End` jump to the first/last sample, and `Space` releases the cursor. Field `Space` still freezes the snapshot.
 
 When Search has focus, normal text-editing behavior wins: modifier chords such as `Ctrl+A/C/V` are left to the `TextField`, while unmodified `Up`/`Down` move through results and `Enter` focuses the result. `F6` moves keyboard focus into the native controls, where `Tab`/`Shift+Tab`, `Enter`, and `Space` follow normal Qt control behavior; `F6` returns to field navigation. Mouse-focused controls are detected from Qt's active focus item so field shortcuts cannot leak through a focused button. `Escape` remains the one-stroke emergency dismissal from every Tactical Display state.
 
@@ -176,6 +183,8 @@ See [Testing](docs/TESTING.md) for automated and real-host checks.
 - [Visual System and Canvas Renderer](docs/VISUAL-DESIGN.md)
 - [Testing Guide](docs/TESTING.md)
 - [Omarchy Runtime Contract](docs/UPSTREAM-CONTRACT.md)
+- [Operator Workflows](docs/OPERATOR-WORKFLOWS.md)
+- [Implementation Plan and Research](docs/OPERATOR-PLAN.md)
 
 ## License
 

@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import qs.Commons
 import "../model/InstrumentModel.js" as Instruments
 import "../model/Lenses.js" as Lenses
+import "../model/Scroll.js" as Scroll
 
 FocusScope {
     id: root
@@ -41,9 +42,7 @@ FocusScope {
         if (direct) root.controller.chooseInstrument(direct.id)
     }
     function reveal(item) {
-        var point=item.mapToItem(sheetContent,0,0)
-        if (point.y<scroll.contentY) scroll.contentY=Math.max(0,point.y)
-        else if (point.y+item.height>scroll.contentY+scroll.height) scroll.contentY=Math.min(Math.max(0,scroll.contentHeight-scroll.height),point.y+item.height-scroll.height)
+        Scroll.reveal(scroll,item,sheetContent)
     }
     function capabilityLabel(instrument) {
         var ids=instrument.providers, caps=root.controller.displayFrame.capabilities||{}, found=false, partial=false
@@ -148,6 +147,7 @@ FocusScope {
                     Rectangle { width: parent.width; height: Style.spacing.hairline; color: root.theme.colors.line }
                     Text { width: parent.width; text: "1-5  switch instrument\nTab / arrows  traverse entities    F6  navigate controls\nEnter  focus    X  expand / collapse    F  isolate\nEscape  close immediately    Backspace  back    R  reset\n/  search    Space  freeze / resume    D  exact details\nV  origin / storage / audio lens    E  process emphasis\nN  TCP / UDP    B  connection state    L  listeners    O  loopback\nT  machine trend    C  copy selected details\nP  privacy    I  instrument picker    ,  settings"; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
                     Text { width: parent.width; text: "Freeze pauses view updates for inspection while sampling continues in the background. Privacy mode masks entity identities and desktop contents for screen sharing."; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
+                    Text { width: parent.width; text: "A  Operator briefing: attention, activity, pins and baseline comparison\nW  Pin / unpin the selected entity (up to eight per session)\nTrend controls: 15/30/60s and Usage / PSI avg10. Hover or click to inspect. Focus the chart to use Left/Right, Home/End; Space returns its cursor to live.\nClosing clears pins, baseline and history. Copied reports remain in the desktop clipboard."; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
                     InstrumentButton { text: "Show introduction / picker"; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: { root.controller.setFlag("showHelp",false); root.controller.setFlag("showPicker",true) } }
                 }
                 Column {

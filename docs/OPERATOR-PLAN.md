@@ -29,7 +29,7 @@ Research used primary sources before implementation:
 3. [Qt Quick performance guidance](https://doc.qt.io/qt-6/qtquick-performance.html): avoid blocking work in UI updates, profile actual costs, and limit unnecessary object/binding work. Keep a single helper; use bounded records and sample-driven drawing, and load the briefing on demand.
 4. [Qt Canvas](https://doc.qt.io/qt-6/qml-qtquick-canvas.html): repainting image-backed canvases can entail texture uploads. Trend inspection should repaint only for changed samples, geometry, theme or cursor; no continuous visual timer.
 5. [W3C use of color](https://www.w3.org/WAI/WCAG22/Understanding/use-of-color.html) and [pause, stop, hide](https://www.w3.org/WAI/WCAG22/Understanding/pause-stop-hide.html): communicate states with words/shapes as well as color and retain explicit freeze/reduced-motion paths. Apply these principles to Qt controls without claiming a WCAG certification.
-6. [Qt Quick accessibility](https://doc.qt.io/qt-6/qtquick-accessibility.html) and [keyboard focus](https://doc.qt.io/qt-6/qtquick-input-focus.html): give controls names, conventional focus behavior and keyboard equivalents; preserve Escape as immediate dismissal and editor ownership of typing.
+6. [Qt Quick accessibility](https://doc.qt.io/qt-6/accessible-qtquick.html) and [keyboard focus](https://doc.qt.io/qt-6/qtquick-input-focus.html): give controls names, conventional focus behavior and keyboard equivalents; preserve Escape as immediate dismissal and editor ownership of typing.
 
 ## Implementation milestones
 
@@ -88,8 +88,11 @@ Commit after the planning baseline and after each working implementation milesto
 ## Execution record
 
 - Branch created from clean `main` at `d47f663`.
-- Baseline sandbox run: 105 Python tests; three socket tests blocked by sandbox permissions, four environment skips. These were environment failures, not implementation regressions. The interrupted outside-sandbox run must be repeated to obtain a complete result.
-- Planning/research complete; implementation not yet started.
+- Baseline: 105 Python tests and 59 JavaScript tests passed outside the initial restrictive sandbox, with one real-filesystem capability skip. The earlier sandbox socket failures were environment restrictions, not application regressions.
+- Milestones 1–4 implemented and pushed in `d403fc2`, `1fcb20a` and `1e06ee4`: qualified attention, bounded session activity, pins, aggregate baseline/report, late-freeze handling, exact entity navigation and interactive usage/PSI trends.
+- TDD refinement found and fixed native property-name collision, late-freeze history rewind, selected-control focus invisibility, actual ScrollView scrolling, live delegate focus loss, missing-import lint permissiveness, private alias mismatch, missing network instance scope, and keyboard-inaccessible provider status. New behavior tests were run failing before their implementations; complete regressions were rerun after correction.
+- 2026-09-07 automated validation: 109 Python tests (one filesystem capability skip), 87 JavaScript tests, production Qt controller/surface interaction tests, source release checks, syntax, Omarchy manifest and native import lint pass. Portable Qt surface tests use isolated host-style/clipboard adapters, not the native shell.
+- Native 1280×800 scale-1 private overlay: actual shell restart/summon, briefing, keyboard baseline capture, current-metric pin, 120-record activity, freeze/resume, usage-to-PSI switch, keyboard-held trend cursor, Space live return and Escape dismissal exercised. Private native captures are outside the watched tree under `/tmp/tactical-*-native-private.png`. Host logs show no plugin QML errors. Full lifecycle/soak, native bar pointer behavior, light/high-DPI/hotplug and complete visual matrix remain separate acceptance gates; they are not implied by these passes.
 
 ## Follow-on opportunities
 

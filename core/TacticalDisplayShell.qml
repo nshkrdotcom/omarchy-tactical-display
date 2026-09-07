@@ -142,6 +142,8 @@ FocusScope {
 
                     Text {
                         id: headerStatus
+                        objectName: "providerStatus"
+                        activeFocusOnTab: true
                         Layout.alignment: Qt.AlignBaseline
                         text: root.headerState
                         textFormat: Text.PlainText
@@ -149,10 +151,27 @@ FocusScope {
                         font.family: root.theme.fontFamily
                         font.pixelSize: root.theme.smallSize
                         font.weight: Font.DemiBold
-                        font.underline: statusHitArea.containsMouse
+                        font.underline: statusHitArea.containsMouse || activeFocus
                         Accessible.role: Accessible.Button
                         Accessible.name: text
                         Accessible.description: "Inspect provider availability, age, errors and provenance"
+                        Accessible.onPressAction: root.controller.setFlag("showCapabilities",true)
+                        Keys.onPressed: event => {
+                            if (!(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier | Qt.ShiftModifier)) &&
+                                (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space)) {
+                                root.controller.setFlag("showCapabilities",true)
+                                event.accepted=true
+                            }
+                        }
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.margins: -Style.spacing.xxs
+                            visible: headerStatus.activeFocus
+                            color: "transparent"
+                            border.color: root.theme.colors.accent
+                            border.width: Style.spacing.hairline
+                            radius: Style.cornerRadius
+                        }
                         MouseArea {
                             id: statusHitArea
                             anchors.fill: parent

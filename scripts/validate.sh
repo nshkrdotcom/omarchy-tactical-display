@@ -37,7 +37,7 @@ if [[ -n "$LINT" && -n ${OMARCHY_PATH:-} && -d "$OMARCHY_PATH/shell" ]]; then
     visual/Field.qml
     visual/Trend.qml
   )
-  "$LINT" -I "$OMARCHY_PATH/shell" "${qml[@]}"
+  python3 scripts/lint-qml.py --lint "$LINT" --shell "$OMARCHY_PATH/shell" "${qml[@]}"
 else printf 'NOT RUN: native QML lint (Qt/Quattro imports absent).\n'; native_missing=1; fi
 if (( native_missing )); then
   printf 'PARTIAL: available automated gates passed; native runtime/lint not validated.\n'

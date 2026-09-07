@@ -55,6 +55,8 @@ test('partial provider evidence is qualified and findings stay bounded and deter
     const f = frame(); f.capabilities.machine.status = 'partial'; f.system.pressure.io.some.avg10 = 7;
     const row = O.assess(f).find(r => r.id === 'psi:io'); assert.match(row.evidence, /partial/i);
     f.storage.mounts = Array.from({length:500},(_,i)=>({key:`mount:${i}`,path:`/m/${i}`,capacity:{totalBytes:100,availableBytes:1,sampledAt:1000}}));
+    f.capabilities.storage.status = 'partial';
+    assert.match(O.assess(f).find(r => r.id.startsWith('capacity:')).evidence, /partial/i);
     assert.ok(O.assess(f).length <= 24); assert.deepEqual(O.assess(f), O.assess(f));
 });
 test('missing and invalid scalar values are absent evidence, not healthy zeros', () => {
@@ -118,4 +120,57 @@ test('operator report is an explicit privacy-safe projection, includes frozen pr
     assert.match(report,/FROZEN/); assert.match(report,/redacted/i); assert.match(report,/Baseline/);
     assert.ok(!report.includes('classified-program')); assert.ok(!report.includes(f.processes[0].key));
     assert.ok(!report.includes('/usr/bin/'));
+});
+test('late freeze acknowledgement retains earlier activity but excludes future observations', () => {
+    const first=frame(950); first.events=[event(first)];
+    let s=O.ingest(O.freshSession(),first);
+    const frozen=frame(1000); frozen.events=[event(frozen)]; s=O.ingest(s,frozen);
+    const later=frame(1001); later.events=[event(later)]; s=O.ingest(s,later);
+    const held=O.freezeSession(s,frozen);
+    assert.equal(held.events.length,2); assert.equal(held.at,1000);
+    assert.ok(held.events.every(e=>e.at<=1000)); assert.equal(s.events.length,3);
+});
+test('optional absent hardware is a coverage fact, not an attention item', () => {
+    const f=frame(); f.capabilities.gpu.status='unavailable'; f.capabilities.thermal.status='unavailable';
+    assert.equal(O.assess(f).some(r=>r.id==='provider:gpu'||r.id==='provider:thermal'),false);
+    f.capabilities.gpu.status='partial'; assert.ok(O.assess(f).some(r=>r.id==='provider:gpu'));
+});
+test('session bounds survive high-churn duplicate frames and reject malformed events', () => {
+    const f=frame(); f.events=Array.from({length:2048},(_,i)=>({...event(f),key:`event:${i}`,at:999+i/4096}));
+    let s=O.ingest(O.freshSession(),f);
+    for(let i=0;i<10;i++)s=O.ingest(s,f);
+    assert.equal(s.events.length,120); assert.equal(new Set(s.events.map(e=>e.key)).size,120); assert.ok(s.seen.length<=2048);
+    const bad=frame(1001); bad.events=[null,{key:'bad',domain:'constructor',entityKey:'bad',at:1001,kind:'opened'}, {...event(bad),at:1100}];
+    assert.equal(O.ingest(s,bad).events.length,120);
+    assert.equal(O.ingest(s,bad).events.some(e=>e.key==='bad'),false);
+});
+test('retained privacy aliases agree with the visualization and stay usable in search', () => {
+    const M=require('../../model/InstrumentModel.js');
+    for(const kind of ['application','process','remote','mount','device','stream','sink','source','audio-node','audio-link','listener','relationship']) {
+        assert.equal(O.displayName({key:'key:private',kind,name:'secret'},true),M.alias(kind,'key:private'));
+    }
+});
+test('pins retain exact group scope for demand-collected process instances', () => {
+    const f=frame(), raw=f.processes[0];
+    const pins=O.togglePin([],{key:raw.key,name:raw.name,kind:'process',raw},'connection');
+    assert.equal(pins[0].groupKey,raw.groupKey);
+    assert.equal(O.pinRows(pins,f,false)[0].groupKey,raw.groupKey);
+});
+test('pin summaries report current measured scalars and qualify stale or absent observations', () => {
+    const f=frame(), p=f.processes[0];
+    p.cpuPercent=37; p.rssBytes=1048576;
+    const pins=O.togglePin([],{key:p.key,name:p.name,kind:'process',raw:p},'processes');
+    let row=O.pinRows(pins,f,true)[0];
+    assert.match(row.metrics,/37.0%/); assert.match(row.metrics,/1.0 MiB/);
+    f.processes[0].cpuPercent=42;
+    assert.match(O.pinRows(pins,f,true)[0].metrics,/42.0%/);
+    f.capabilities.processes.status='stale';
+    row=O.pinRows(pins,f,true)[0]; assert.equal(row.status,'stale'); assert.equal(row.metrics,'Metrics unavailable');
+    f.processes=[]; f.network.instances=[]; f.storage.contributors=[];
+    assert.equal(O.pinRows(pins,f,true)[0].status,'not observed');
+});
+test('provider-declared stale observations keep their actual quality classification', () => {
+    const f=frame(); f.capabilities.audio.status='stale';
+    assert.equal(O.providerState(f,'audio'),'stale');
+    assert.match(O.assess(f).find(r=>r.id==='provider:audio').evidence,/stale/);
 });

@@ -31,8 +31,8 @@ Button {
     }
     background: Rectangle {
         color: root.chosen ? root.paletteColors.accent : root.down ? root.paletteColors.plane : root.hovered ? root.paletteColors.panel : "transparent"
-        border.width: root.chosen ? 0 : (root.bordered || root.activeFocus || root.hovered ? Style.spacing.hairline : 0)
-        border.color: root.activeFocus ? root.paletteColors.accent : root.hovered ? root.paletteColors.line : root.bordered ? root.paletteColors.line : "transparent"
+        border.width: root.activeFocus ? Style.space(2) : root.chosen ? 0 : (root.bordered || root.hovered ? Style.spacing.hairline : 0)
+        border.color: root.activeFocus ? root.chosen ? root.paletteColors.foreground : root.paletteColors.accent : root.hovered ? root.paletteColors.line : root.bordered ? root.paletteColors.line : "transparent"
         radius: Style.cornerRadius
     }
     ToolTip.visible: hovered && hint.length > 0

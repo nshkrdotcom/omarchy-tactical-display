@@ -5,6 +5,7 @@ import QtQuick.Layouts
 import Quickshell
 import qs.Commons
 import "../model/Operator.js" as Operator
+import "../model/Scroll.js" as Scroll
 
 FocusScope {
     id: root
@@ -15,13 +16,39 @@ FocusScope {
     property string activityKind: "all"
     property string copiedMessage: ""
     readonly property var events: Operator.activity(controller.displaySession,{instrument:activityInstrument,kind:activityKind,privacy:controller.effectiveSettings.privacy})
-    readonly property var pinRows: Operator.pinRows(controller.pins,controller.displayFrame,controller.effectiveSettings.privacy)
+    readonly property var pinRows: Operator.pinRows(controller.pins,controller.displayFrame,controller.effectiveSettings.privacy,controller.observationNow)
     readonly property var comparisons: Operator.compare(controller.comparisonBaseline,controller.displayFrame,{now:controller.observationNow})
+    ListModel { id: eventItems; dynamicRoles: true }
+    ListModel { id: findingItems; dynamicRoles: true }
+    ListModel { id: pinItems; dynamicRoles: true }
+    ListModel { id: comparisonItems; dynamicRoles: true }
+    function sync(model, records, keyField) {
+        var wanted=Object.create(null)
+        records.forEach(function(r) { wanted[r[keyField]]=true })
+        for (var old=model.count-1;old>=0;old--) if (!wanted[model.get(old).idKey]) model.remove(old)
+        for (var i=0;i<records.length;i++) {
+            var key=records[i][keyField], at=-1
+            for (var j=i;j<model.count;j++) if (model.get(j).idKey === key) { at=j; break }
+            if (at<0) model.insert(i,{idKey:key,record:records[i]})
+            else {
+                if (at!==i) model.move(at,i,1)
+                model.setProperty(i,"record",records[i])
+            }
+        }
+    }
+    function syncSection() {
+        if (section === "activity") sync(eventItems,events,"key")
+        if (section === "attention") sync(findingItems,controller.attention,"id")
+        if (section === "pins") sync(pinItems,pinRows,"key")
+        if (section === "baseline") sync(comparisonItems,comparisons,"id")
+    }
+    onEventsChanged: if (section === "activity") syncSection()
+    onPinRowsChanged: if (section === "pins") syncSection()
+    onComparisonsChanged: if (section === "baseline") syncSection()
+    onSectionChanged: syncSection()
+    Connections { target: root.controller; function onAttentionChanged() { if (root.section === "attention") root.syncSection() } }
     function reveal(item) {
-        var point=item.mapToItem(sheetContent,0,0)
-        var flick=scroll.contentItem
-        if (point.y<flick.contentY) flick.contentY=Math.max(0,point.y)
-        else if (point.y+item.height>flick.contentY+scroll.height) flick.contentY=Math.min(Math.max(0,scroll.contentHeight-scroll.height),point.y+item.height-scroll.height)
+        Scroll.reveal(scroll,item,sheetContent)
     }
     function cycleDomain() {
         var values=["all","connection","processes","machine","storage","audio"]
@@ -64,6 +91,7 @@ FocusScope {
             anchors.margins: Style.spacing.xxl
             spacing: Style.spacing.xl
             RowLayout {
+                objectName: "briefingHeader"
                 Layout.fillWidth: true
                 Text {
                     Layout.fillWidth: true
@@ -101,12 +129,12 @@ FocusScope {
                 Layout.fillWidth: true
                 spacing: Style.spacing.sm
                 Repeater {
-                    model: [{id:"attention",name:"Attention",count:root.controller.attention.length},{id:"activity",name:"Activity",count:root.controller.displaySession.events.length},{id:"pins",name:"Pins",count:root.controller.pins.length},{id:"baseline",name:"Baseline",count:root.controller.comparisonBaseline ? 1 : 0}]
+                    model: ["attention","activity","pins","baseline"]
                     delegate: Action {
-                        required property var modelData
-                        text: modelData.name+" · "+modelData.count
-                        chosen: root.section === modelData.id
-                        onClicked: { root.section=modelData.id; scroll.contentItem.contentY=0 }
+                        required property string modelData
+                        text: modelData.charAt(0).toUpperCase()+modelData.slice(1)+" · "+(modelData === "attention" ? root.controller.attention.length : modelData === "activity" ? root.controller.displaySession.events.length : modelData === "pins" ? root.controller.pins.length : root.controller.comparisonBaseline ? 1 : 0)
+                        chosen: root.section === modelData
+                        onClicked: { root.section=modelData; scroll.contentItem.contentY=0 }
                     }
                 }
             }
@@ -118,6 +146,7 @@ FocusScope {
             Rectangle { Layout.fillWidth: true; Layout.preferredHeight: Style.spacing.hairline; color: root.theme.colors.line }
             ScrollView {
                 id: scroll
+                objectName: "briefingScroll"
                 Layout.fillWidth: true
                 Layout.fillHeight: true
                 clip: true
@@ -140,10 +169,11 @@ FocusScope {
                             Action { text: "Data sources"; onClicked: root.controller.jumpOperator({instrument:"capabilities"}); onActiveFocusChanged: if (activeFocus) root.reveal(this) }
                         }
                         Repeater {
-                            model: root.section === "attention" ? root.controller.attention : []
+                            model: findingItems
                             delegate: Column {
                                 id: finding
-                                required property var modelData
+                                required property var record
+                                readonly property var modelData: record
                                 width: sheetContent.width; spacing: Style.spacing.md
                                 Body { text: finding.modelData.severity.toUpperCase()+" · "+finding.modelData.title; font.weight: Font.DemiBold; font.pixelSize: root.theme.bodySize; color: finding.modelData.severity === "high" ? root.theme.colors.critical : finding.modelData.severity === "watch" ? root.theme.colors.warning : root.theme.colors.foreground }
                                 Body { text: finding.modelData.evidence }
@@ -164,9 +194,12 @@ FocusScope {
                         }
                         Body { visible: !root.events.length; text: "No observed changes match these filters. Activity begins after the first observation." }
                         Repeater {
-                            model: root.section === "activity" ? root.events : []
+                            model: eventItems
                             delegate: Action {
-                                required property var modelData
+                                required property var record
+                                readonly property var modelData: record
+                                required property int index
+                                objectName: "activityRow"+index
                                 width: sheetContent.width
                                 text: modelData.age+" · "+modelData.kind.toUpperCase()+" · "+modelData.name
                                 hint: modelData.instrument+" / inspect exact entity; departed entities may no longer be available"
@@ -181,12 +214,14 @@ FocusScope {
                         Action { text: "Clear pins"; visible: root.pinRows.length>0; onClicked: root.controller.pins=[] }
                         Body { visible: !root.pinRows.length; text: "No entities pinned. Return to an instrument, select an entity, and use Pin or W." }
                         Repeater {
-                            model: root.section === "pins" ? root.pinRows : []
+                            model: pinItems
                             delegate: Column {
                                 id: pin
-                                required property var modelData
+                                required property var record
+                                readonly property var modelData: record
                                 width: sheetContent.width; spacing: Style.spacing.sm
                                 Body { text: pin.modelData.name+" · "+pin.modelData.status; font.pixelSize: root.theme.bodySize }
+                                Body { text: pin.modelData.metrics; color: root.theme.colors.subdued }
                                 Flow {
                                     width: parent.width; spacing: Style.spacing.sm
                                     Action { text: "Inspect in "+pin.modelData.instrument; onClicked: root.controller.jumpOperator(pin.modelData); onActiveFocusChanged: if (activeFocus) root.reveal(this) }
@@ -205,10 +240,11 @@ FocusScope {
                         }
                         Body { visible: !!root.controller.comparisonBaseline; text: "Before → current · change. Host network rates can include virtual-interface double counting; storage rates are measured at the device level."; color: root.theme.colors.subdued }
                         Repeater {
-                            model: root.section === "baseline" ? root.comparisons : []
+                            model: comparisonItems
                             delegate: Column {
                                 id: comparison
-                                required property var modelData
+                                required property var record
+                                readonly property var modelData: record
                                 width: sheetContent.width; spacing: Style.spacing.sm
                                 Body { text: comparison.modelData.label; font.weight: Font.DemiBold }
                                 Body { text: comparison.modelData.before+" → "+comparison.modelData.current+" · "+comparison.modelData.change+" · "+comparison.modelData.quality }
@@ -219,5 +255,5 @@ FocusScope {
             }
         }
     }
-    Component.onCompleted: Qt.callLater(function() { backButton.forceActiveFocus() })
+    Component.onCompleted: { syncSection(); Qt.callLater(function() { backButton.forceActiveFocus() }) }
 }

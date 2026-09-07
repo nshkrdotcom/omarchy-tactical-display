@@ -107,7 +107,8 @@ Item {
         var next = Object.assign({},navState)
         next.query = ""; next.filters = ({}); next.focusKey = ""; next.selectedKey = ""; next.selectedRecord = null
         next.isolated = false; next.showSearch = false
-        next.context = target.entityKey ? {key:target.entityKey} : null
+        next.context = target.entityKey ? {key:target.entityKey,operatorExact:true,groupKey:target.groupKey||""} : null
+        if (next.context && String(target.entityKey).indexOf("process:") === 0) next.context.processKey=target.entityKey
         next.notice = ""
         navState = next
     }
@@ -288,6 +289,14 @@ Item {
                 var pendingProcessScope = root.navState.instrument === "connection" && context.processKey && context.groupKey &&
                     Array.isArray(net.instanceGroups) && net.instanceGroups.indexOf(context.groupKey) < 0
                 if (pendingProcessScope) return
+                if (context.operatorExact) {
+                    var key=context.key
+                    if (root.view.allNodes.some(function(n) { return n.key === key }) || root.view.edges.some(function(e) { return e.key === key })) {
+                        root.pickKey(key)
+                        root.focusSelection()
+                    } else if (!root.navState.notice) root.setFlag("notice","This exact entity is not observed in the collected scope. It may have ended or be outside the current provider limits.")
+                    return
+                }
                 var resolved = Navigation.resolveContext(root.navState,root.view.allNodes)
                 if (resolved.selectedKey !== root.navState.selectedKey || resolved.notice !== root.navState.notice) root.navState = resolved
             }
@@ -314,7 +323,7 @@ Item {
             root.freezePending = false
             root.setFlag("frozen",frame.frozen)
             root.displayFrame = frame.frozen ? frame.snapshot : root.liveFrame
-            if (frame.frozen) root.frozenSession = Operator.ingest(root.operatorSession,frame.snapshot)
+            if (frame.frozen) root.frozenSession = Operator.freezeSession(root.operatorSession,frame.snapshot)
             root.detailFrame = null
         }
         function onBackendErrorChanged() { if (root.telemetry.backendError && root.freezePending) { root.freezePending = false; root.freezeRequestId = -1; freezeTimeout.stop(); root.setFlag("notice","Snapshot request failed; retry after the helper recovers.") } }

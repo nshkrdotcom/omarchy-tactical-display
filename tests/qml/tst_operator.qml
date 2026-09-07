@@ -58,4 +58,28 @@ TestCase {
         compare(controller.navState.instrument,"processes"); compare(controller.navState.query,""); verify(!controller.navState.showOperator)
         tryVerify(function() { return controller.navState.selectedKey === "process:42:100" })
     }
+    function test_late_freeze_reply_keeps_prior_history() {
+        fake.received(sample(950)); fake.received(sample(1000)); controller.toggleFreeze()
+        fake.received(sample(1001))
+        fake.freezeReceived({requestId:7,frozen:true,snapshot:sample(1000)})
+        compare(controller.displaySession.events.length,2)
+        compare(controller.displaySession.at,1000)
+    }
+    function test_relationship_jump_resolves_edges_and_never_falls_back_to_another_entity() {
+        var f=sample(1000)
+        f.network={processes:[{key:"application:test",name:"app",pids:[42]}],remotes:[{key:"remote:test",name:"host"}],
+            links:[{key:"relationship:test",processKey:"application:test",remoteKey:"remote:test",active:true,proto:"tcp",servicePort:443,socketCount:1}],listeners:[]}
+        fake.received(f)
+        controller.jumpOperator({instrument:"connection",entityKey:"relationship:test"})
+        tryVerify(function() { return controller.navState.selectedKey === "relationship:test" })
+        controller.jumpOperator({instrument:"connection",entityKey:"relationship:ended",groupKey:"application:test"})
+        tryVerify(function() { return controller.navState.notice.length>0 })
+        compare(controller.navState.selectedKey,"")
+    }
+    function test_instance_jump_requests_group_scope() {
+        fake.received(sample(1000))
+        controller.jumpOperator({instrument:"connection",entityKey:"process:42:100",groupKey:"application:test"})
+        compare(controller.navState.context.processKey,"process:42:100")
+        compare(controller.navState.context.groupKey,"application:test")
+    }
 }
