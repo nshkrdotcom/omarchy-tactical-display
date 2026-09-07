@@ -7,6 +7,7 @@ from .common import stable_id
 
 
 class EventStore:
+    signature_fields = ('state', 'states', 'parentKey', 'sourceKey', 'targetKey', 'mute', 'default', 'socketCount', 'pressure')
     def __init__(self, ttl: float = 4.0, limit: int = 512, entity_limit: int = 24000) -> None:
         self.ttl = max(0.1, min(ttl, 30))
         self.limit = max(1, min(limit, 2048))
@@ -18,7 +19,7 @@ class EventStore:
 
     @staticmethod
     def signature(row: dict[str, Any]) -> tuple[Any, ...]:
-        return tuple(str(row.get(f, '')) for f in ('state', 'states', 'parentKey', 'sourceKey', 'targetKey', 'mute', 'default', 'socketCount', 'pressure'))
+        return tuple(str(row.get(f, '')) for f in EventStore.signature_fields)
 
     def update(self, domain: str, rows: list[dict[str, Any]], now: float, complete: bool = True) -> None:
         old = self.previous.get(domain)
@@ -29,9 +30,13 @@ class EventStore:
             self.first_seen.setdefault(key, now)
             self.first_seen.move_to_end(key)
             self.ghosts.pop(key, None)
-            kind = 'opened' if old is not None and key not in old else 'changed' if old and key in old and self.signature(row) != self.signature(old[key]) else None
+            changed_fields = [field for field, before, after in zip(self.signature_fields, self.signature(old[key]), self.signature(row)) if before != after] if old and key in old else []
+            kind = 'opened' if old is not None and key not in old else 'changed' if changed_fields else None
             if kind:
-                self.queue.append({'key': stable_id('event', domain, key, kind, now), 'entityKey': key, 'domain': domain, 'kind': kind, 'at': now, 'expiresAt': now + self.ttl})
+                event = {'key': stable_id('event', domain, key, kind, now), 'entityKey': key, 'domain': domain, 'kind': kind, 'at': now, 'expiresAt': now + self.ttl}
+                if changed_fields:
+                    event['changedFields'] = changed_fields
+                self.queue.append(event)
         if not baseline and complete:
             for key, row in old.items():
                 if key not in current:

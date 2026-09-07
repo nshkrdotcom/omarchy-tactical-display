@@ -55,7 +55,7 @@ FocusScope {
         activityInstrument=values[(values.indexOf(activityInstrument)+1)%values.length]
     }
     function cycleKind() {
-        var values=["all","opened","changed","closed"]
+        var values=["all","lifecycle","opened","changed","closed"]
         activityKind=values[(values.indexOf(activityKind)+1)%values.length]
     }
     component Body: Text {
@@ -94,15 +94,18 @@ FocusScope {
                 objectName: "briefingHeader"
                 Layout.fillWidth: true
                 Text {
+                    objectName: "briefingTitle"
                     Layout.fillWidth: true
                     text: "Operator briefing"
                     textFormat: Text.PlainText
+                    wrapMode: Text.Wrap
                     color: root.theme.colors.foreground
                     font.family: root.theme.fontFamily
                     font.pixelSize: root.theme.bodySize
                     font.weight: Font.DemiBold
                 }
                 Action {
+                    objectName: "briefingFreeze"
                     text: root.controller.navState.frozen ? "Resume" : "Freeze"
                     enabled: !root.controller.freezePending && root.controller.displayFrame.schemaVersion === 3
                     chosen: root.controller.navState.frozen
@@ -110,6 +113,7 @@ FocusScope {
                     onClicked: root.controller.toggleFreeze()
                 }
                 Action {
+                    objectName: "briefingCopy"
                     text: "Copy report"
                     enabled: root.controller.displayFrame.schemaVersion === 3
                     onClicked: {
@@ -117,7 +121,7 @@ FocusScope {
                         root.copiedMessage=root.controller.effectiveSettings.privacy ? "Redacted operator report copied" : "Operator report copied to clipboard"
                     }
                 }
-                Action { id: backButton; text: "Back"; hint: "Backspace / return to instrument. Esc closes Tactical Display."; bordered: true; onClicked: root.controller.setFlag("showOperator",false) }
+                Action { id: backButton; objectName: "briefingBack"; text: "Back"; hint: "Backspace / return to instrument. Esc closes Tactical Display."; bordered: true; onClicked: root.controller.setFlag("showOperator",false) }
             }
             Text {
                 Layout.fillWidth: true
@@ -190,7 +194,7 @@ FocusScope {
                         Flow {
                             width: parent.width; spacing: Style.spacing.sm
                             Action { text: "Instrument: "+root.activityInstrument; onClicked: root.cycleDomain() }
-                            Action { text: "Event: "+root.activityKind; onClicked: root.cycleKind() }
+                            Action { text: "Event: "+(root.activityKind === "lifecycle" ? "opened + closed" : root.activityKind); hint: "Lifecycle-only hides routine state changes without deleting retained events"; onClicked: root.cycleKind() }
                         }
                         Body { visible: !root.events.length; text: "No observed changes match these filters. Activity begins after the first observation." }
                         Repeater {
@@ -201,7 +205,8 @@ FocusScope {
                                 required property int index
                                 objectName: "activityRow"+index
                                 width: sheetContent.width
-                                text: modelData.age+" · "+modelData.kind.toUpperCase()+" · "+modelData.name
+                                textAlignment: Text.AlignLeft
+                                text: modelData.age+" · "+modelData.kind.toUpperCase()+" · "+modelData.name+(modelData.detail ? "\n"+modelData.detail : "")
                                 hint: modelData.instrument+" / inspect exact entity; departed entities may no longer be available"
                                 onClicked: root.controller.jumpOperator(modelData)
                                 onActiveFocusChanged: if (activeFocus) root.reveal(this)

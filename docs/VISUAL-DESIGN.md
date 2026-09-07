@@ -26,6 +26,8 @@ Generated files under `/tmp/tactical-fixtures` are representative shared-rendere
 
 ## Target matrix and pass criteria
 
+Follow-up Qt regressions cover both paired numeric legends at 440 pixels wide and the briefing header at 480×430 with 20/24-pixel type. Each trend series has its own wrapping line; the briefing title wraps instead of painting across its actions. Timeline buttons use a consistent left reading edge and retain their keyed live-focus behavior.
+
 Operator mission-control review (2026-09-07): the real 1280×800 scale-1 private overlay was inspected for briefing attention, baseline deltas, a live-metric pin, a full 120-event frozen timeline, CPU usage and keyboard-inspected PSI. Native captures remain outside the source tree. Selected controls visibly preserve their focus outline; traces have measured axes, named solid/dashed series and an inspection timestamp. Real Qt component tests additionally exercise a 480×430 briefing scroll surface and keyboard-revealed rows; those tests use isolated host-style inputs and are not screenshots of a native panel. Bar-pointer behavior, complete light/dark/high-DPI matrix and GPU frame-time profiling remain unverified for this feature tranche.
 
 For each mode, capture quiet, normal, dense, selected, search, degraded, light/dark and reduced-motion states on a real Quattro session. Cover 1920x1080, 2560x1440 and available 4K/fractional scaling. Inspect at actual size. Fail on clipped/overlapping primary labels, unreadable selected information, unstable placement, unbounded line spaghetti, misleading flow semantics, a selected entity hidden by details, keyboard traps or frame hitches.

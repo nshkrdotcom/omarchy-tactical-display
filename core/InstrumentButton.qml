@@ -10,6 +10,7 @@ Button {
     property bool chosen: false
     property bool bordered: false
     property string hint: ""
+    property int textAlignment: Text.AlignHCenter
     leftPadding: Style.spacing.controlPaddingX
     rightPadding: Style.spacing.controlPaddingX
     topPadding: Style.spacing.controlPaddingY
@@ -25,7 +26,7 @@ Button {
         font.family: root.fontFamily
         font.pixelSize: root.textSize
         font.weight: root.chosen ? Font.DemiBold : Font.Normal
-        horizontalAlignment: Text.AlignHCenter
+        horizontalAlignment: root.textAlignment
         verticalAlignment: Text.AlignVCenter
         elide: Text.ElideRight
     }

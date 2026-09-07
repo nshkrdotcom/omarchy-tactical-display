@@ -8,12 +8,17 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Added
 
+- Activity change explanations and an opened-plus-closed filter for scanning lifecycle changes without deleting routine state events.
+
 - Operator briefing with explainable PSI and capacity findings, provider quality and exact-entity inspection links.
 - Five-minute bounded activity history, instrument/lifecycle filters, eight session pins with current metrics, aggregate baseline comparison and a privacy-aware clipboard report.
 - Interactive 15/30/60-second trends, usage/PSI lenses, missing-data gaps, measured scales, solid/dashed paired traces and pointer/keyboard inspection.
 - Production-model regression tests and real Qt controller/control tests, with isolated style and clipboard adapters for portable component testing.
 
 ### Fixed
+
+- Audio pin/event aliases follow actual PipeWire media classes; mount pins expire cached capacity independently of provider freshness.
+- Activity has a consistent left reading edge, and paired trends retain both numeric legends at compact widths.
 
 - Live activity refresh now preserves focused delegates; selected buttons retain a visible focus outline.
 - Command sheets scroll the actual Flickable to reveal keyboard-focused controls.

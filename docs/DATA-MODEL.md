@@ -43,6 +43,8 @@ Process discovery, per-process reads and application grouping share one absolute
 
 ## Freeze and retention
 
+Changed events optionally include `changedFields`: at most nine known field names from the existing lifecycle signature. This records what changed (state, states, parent/source/target, mute/default, socket count or pressure band), never before/after identity values. Older frames without this additive field remain valid. The operator model independently allowlists these names before retaining or reporting them.
+
 Aggregate trend rows now also carry `cpuSomePercent`, `memorySomePercent`, `memoryFullPercent`, `ioSomePercent` and `ioFullPercent`, sampled from PSI avg10. Missing pressure values remain null; system-level CPU full is intentionally absent. These additive fields do not change schema version or temporal collection bounds.
 
 The operator UI retains up to 120 compact lifecycle records for five minutes and at most 2,048 deduplication keys, one compact baseline of ten aggregate measurements, and eight lightweight pins. No raw socket dictionaries or complete frames are copied into those stores. Operator findings use the documented heuristics in [Operator workflows](OPERATOR-WORKFLOWS.md); missing/partial/stale coverage remains explicit. The displayed event timeline follows snapshot freeze, including acknowledgement ordering, and resets when a helper sequence restarts.

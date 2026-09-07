@@ -70,19 +70,24 @@ function assess(frame, options) {
 }
 
 var domains = {process:'processes',relationship:'connection',remote:'connection',listener:'connection',mount:'storage','audio-node':'audio','audio-link':'audio',pressure:'machine'};
-function scalarSummary(row) {
+function scalarSummary(row, now) {
     var parts=[];
     if (measured(row.cpuPercent)!==null) parts.push(format(row.cpuPercent,'percent')+' CPU (100% = one core)');
     if (measured(row.rssBytes)!==null) parts.push(format(row.rssBytes,'bytes')+' RSS');
     if (measured(row.socketCount)!==null) parts.push(row.socketCount+' sockets');
     if (measured(row.readBps)!==null) parts.push('R '+format(row.readBps,'rate'));
     if (measured(row.writeBps)!==null) parts.push('W '+format(row.writeBps,'rate'));
-    if (measured((row.capacity||{}).availableBytes)!==null) parts.push(format(row.capacity.availableBytes,'bytes')+' available');
+    if (measured((row.capacity||{}).availableBytes)!==null) {
+        var sampled=row.capacity.sampledAt;
+        parts.push(finite(now) && finite(sampled) && sampled<=now+1 && now-sampled<=30 ? format(row.capacity.availableBytes,'bytes')+' available' : 'Capacity observation stale');
+    }
     if (typeof row.mute==='boolean') parts.push(row.mute?'Muted':'Unmuted');
     return parts.join(' · ') || 'No comparable scalar metrics';
 }
-function entityIndex(frame, wanted) {
+function entityIndex(frame, wanted, now) {
     var out=Object.create(null), n=frame.network||{}, s=frame.storage||{}, a=frame.audio||{};
+    if (!Object.keys(wanted).length) return out;
+    now=finite(now)?now:frame.monotonic;
     var collections=[[frame.processes,'process'],[frame.groups,'application'],[n.processes,'application'],[n.instances,'process'],[n.remotes,'remote'],[n.links,'relationship'],[n.instanceLinks,'relationship'],[n.listeners,'listener'],[s.mounts,'mount'],[s.devices,'device'],[s.contributors,'process'],[a.nodes,'audio-node'],[a.devices,'audio-device'],[a.links,'audio-link']];
     collections.forEach(function(pair) {
         rows(pair[0]).slice(0,48000).forEach(function(r) {
@@ -91,8 +96,11 @@ function entityIndex(frame, wanted) {
             if (kind==='remote') name=name||r.address;
             if (kind==='relationship') name=name||'Network relationship';
             if (kind==='audio-link') name='Audio route';
-            if (kind==='audio-node') kind=r.kind||kind;
-            if (!out[r.key]) out[r.key]={key:r.key,kind:kind,name:clean(name||kind),closed:r.closed===true,groupKey:r.groupKey||'',metrics:scalarSummary(r)};
+            if (kind==='audio-node') {
+                var media=r.mediaClass||'';
+                kind=media==='Audio/Sink'?'sink':media==='Audio/Source'?'source':media.indexOf('Stream/')===0?'stream':'audio-node';
+            }
+            if (!out[r.key]) out[r.key]={key:r.key,kind:kind,name:clean(name||kind),closed:r.closed===true,groupKey:r.groupKey||'',metrics:scalarSummary(r,now)};
         });
     });
     ['cpu','memory','storage','network','gpu','thermal'].forEach(function(id) {
@@ -102,6 +110,12 @@ function entityIndex(frame, wanted) {
     return out;
 }
 function freshSession() { return {at:null,sequence:null,events:[],seen:[]}; }
+var changeLabels={state:'State changed',states:'Connection states changed',parentKey:'Parent changed',sourceKey:'Route source changed',targetKey:'Route target changed',mute:'Mute changed',default:'Default changed',socketCount:'Socket count changed',pressure:'Pressure band changed'};
+function changeFields(input) {
+    return rows(input).slice(0,16).filter(function(field,index,all) {
+        return typeof field==='string' && Object.prototype.hasOwnProperty.call(changeLabels,field) && all.indexOf(field)===index;
+    });
+}
 function ingest(session, frame) {
     session=session||freshSession();
     if (!finite(frame.monotonic)) return session;
@@ -117,7 +131,7 @@ function ingest(session, frame) {
         if (!e || typeof e.key!=='string' || e.key.length>512 || typeof e.entityKey!=='string' || e.entityKey.length>512 || !Object.prototype.hasOwnProperty.call(domains,e.domain) || ['opened','changed','closed'].indexOf(e.kind)<0 || !finite(e.at) || e.at>now || now-e.at>300 || seen[e.key]) return;
         seen[e.key]=true; seenRows.push({key:e.key,at:e.at});
         var r=index[e.entityKey]||names[e.entityKey]||{kind:e.domain,name:'Entity no longer in collected scope'};
-        retained.push({key:e.key,entityKey:e.entityKey,domain:e.domain,kind:e.kind,entityKind:r.entityKind||r.kind,name:r.name,at:e.at,instrument:domains[e.domain],groupKey:r.groupKey||''});
+        retained.push({key:e.key,entityKey:e.entityKey,domain:e.domain,kind:e.kind,entityKind:r.entityKind||r.kind,name:r.name,at:e.at,instrument:domains[e.domain],groupKey:r.groupKey||'',changedFields:changeFields(e.changedFields)});
     });
     retained.sort(function(a,b){return b.at-a.at || a.key.localeCompare(b.key);});
     return {at:now,sequence:frame.sequence,events:retained.slice(0,120),seen:seenRows.slice(-2048)};
@@ -133,9 +147,10 @@ function freezeSession(session, frame) {
 function activity(session, options) {
     options=options||{};
     return rows((session||{}).events).filter(function(e) {
-        return (!options.instrument || options.instrument==='all' || e.instrument===options.instrument) && (!options.kind || options.kind==='all' || e.kind===options.kind);
+        return (!options.instrument || options.instrument==='all' || e.instrument===options.instrument) && (!options.kind || options.kind==='all' || (options.kind==='lifecycle' ? e.kind==='opened'||e.kind==='closed' : e.kind===options.kind));
     }).map(function(e) {
         return {key:e.key,entityKey:e.entityKey,domain:e.domain,kind:e.kind,instrument:e.instrument,at:e.at,groupKey:e.groupKey||'',
+            detail:changeFields(e.changedFields).map(function(field){return changeLabels[field];}).join(' · '),
             name:displayName({entityKey:e.entityKey,kind:e.entityKind,name:e.name},options.privacy),
             age:Math.max(0,((session||{}).at||e.at)-e.at).toFixed(0)+'s ago'};
     });
@@ -150,7 +165,7 @@ function togglePin(pins, entity, instrument) {
 }
 function pinRows(pins, frame, privacy, now) {
     var wanted=Object.create(null); rows(pins).forEach(function(p){wanted[p.key]=true;});
-    var index=entityIndex(frame||{},wanted);
+    var index=entityIndex(frame||{},wanted,now);
     return rows(pins).map(function(p) {
         var r=index[p.key];
         var provider=p.kind==='subsystem'?'machine':['process','application'].indexOf(p.kind)>=0?'processes':p.instrument==='connection'?'network':p.instrument==='audio'?'audio':'storage';
@@ -210,7 +225,7 @@ function report(frame, session, pins, baseline, options) {
     out.push('', 'Pinned entities');
     pinRows(pins,frame,options.privacy,options.now).forEach(function(r){out.push(r.name+' / '+r.kind+' / '+r.status+' / '+r.metrics);});
     out.push('', 'Recent activity / observed lifecycle events');
-    activity(session,{privacy:options.privacy}).slice(0,20).forEach(function(r){out.push(r.age+' / '+r.kind+' / '+r.name);});
+    activity(session,{privacy:options.privacy}).slice(0,20).forEach(function(r){out.push(r.age+' / '+r.kind+' / '+r.name+(r.detail?' / '+r.detail:''));});
     return out.join('\n');
 }
 if (typeof module!=='undefined') module.exports={providerState:providerState,assess:assess,freshSession:freshSession,ingest:ingest,freezeSession:freezeSession,activity:activity,togglePin:togglePin,pinRows:pinRows,captureBaseline:captureBaseline,compare:compare,report:report,format:format,displayName:displayName};

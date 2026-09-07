@@ -20,11 +20,12 @@ FocusScope {
     readonly property var plot: TrendModel.build(samples,selectedKey,{seconds:windowSeconds,metric:metric,interval:intervalSeconds,width:trace.width,height:trace.height})
     readonly property var inspection: TrendModel.inspect(plot,cursorAt)
     readonly property string summary: {
-        return plot.traces.map(function(t,index) {
-            var value = root.inspection ? root.inspection.values[index].value : t.stats.current
-            return (t.dashed ? "┄ " : "━ ")+t.name+": "+Operator.format(value,root.plot.unit)+
-                "  ["+Operator.format(t.stats.min,root.plot.unit)+"–"+Operator.format(t.stats.max,root.plot.unit)+"]"
-        }).join("    ")
+        return plot.traces.map(function(t,index) { return root.describeTrace(t,index) }).join("    ")
+    }
+    function describeTrace(t,index) {
+        var value = root.inspection ? root.inspection.values[index].value : t.stats.current
+        return (t.dashed ? "┄ " : "━ ")+t.name+": "+Operator.format(value,root.plot.unit)+
+            "  ["+Operator.format(t.stats.min,root.plot.unit)+"–"+Operator.format(t.stats.max,root.plot.unit)+"]"
     }
     activeFocusOnTab: visible
     Accessible.role: Accessible.Chart
@@ -77,13 +78,23 @@ FocusScope {
                 onClicked: { root.resume(); root.forceActiveFocus() }
             }
         }
-        Text {
+        ColumnLayout {
             Layout.fillWidth: true
-            text: root.summary
-            textFormat: Text.PlainText
-            elide: Text.ElideRight
-            color: root.theme.colors.foreground
-            font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize
+            spacing: 0
+            Repeater {
+                model: root.plot.traces
+                delegate: Text {
+                    required property var modelData
+                    required property int index
+                    objectName: "trendSummary"+index
+                    Layout.fillWidth: true
+                    text: root.describeTrace(modelData,index)
+                    textFormat: Text.PlainText
+                    wrapMode: Text.Wrap
+                    color: root.theme.colors.foreground
+                    font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize
+                }
+            }
         }
         RowLayout {
             Layout.fillWidth: true

@@ -19,7 +19,7 @@ Missing, stale and inactive measurements do not become zero. Provider freshness 
 
 ## Follow changes over time
 
-The **Activity** tab keeps at most 120 backend-observed lifecycle events for five minutes. Filter by instrument and opened/changed/closed state. Initial observations establish a baseline rather than generating an “opened” event for every existing process. Only sampled providers contribute; incomplete or truncated observations never prove disappearance.
+The **Activity** tab keeps at most 120 backend-observed lifecycle events for five minutes. Filter by instrument and opened/changed/closed state. **Event: opened + closed** hides routine state changes without deleting retained history. Change rows explain which observed fields changed (state, parent, route, mute/default, socket count or pressure band), without retaining the old/new identity-bearing values. Initial observations establish a baseline rather than generating an “opened” event for every existing process. Only sampled providers contribute; incomplete or truncated observations never prove disappearance. The record cap can shorten the visible history on a high-churn host.
 
 Repeated event frames are deduplicated. A restarted helper starts a new timeline. Freeze holds the displayed event history alongside the exact snapshot; live collection continues independently. A late freeze acknowledgement cannot pull newer events into the held history. Selecting an event follows its exact key, including relationship edges. If it has ended or is outside collected scope, the interface says so instead of selecting another process with the same PID.
 
@@ -29,7 +29,7 @@ Select an entity in any instrument and press `W`, or choose **Pin** in its inspe
 
 Use **Inspect in …** to return to the entity; network process pins preserve the application scope needed to collect instance relationships. **Unpin** removes one entry; **Clear pins** clears the set. Resetting a field view preserves pins, while closing Tactical Display clears them.
 
-Privacy aliases match the field and remain searchable. Enabling privacy also masks names retained before it was enabled. Pins and activity are not saved to disk.
+Privacy aliases match the field, including PipeWire sink/source/stream classes, and remain searchable. Enabling privacy also masks names retained before it was enabled. Pins and activity are not saved to disk. Mount-pin capacity has its own 30-second expiry even while the storage provider remains fresh.
 
 ## Compare before and after
 
@@ -40,6 +40,8 @@ CPU and PSI changes use percentage points (`pp`); memory changes use bytes; thro
 **Copy report** copies observation time, live/frozen status, findings, baseline comparisons, pins and the 20 most recent events. In privacy mode it copies a deliberate redacted projection, never raw retained objects. The desktop clipboard is outside the plugin's session lifetime and may be retained by a clipboard manager. Copying is always an explicit action.
 
 ## Inspect the graphics
+
+Each trace has a separate, wrapping numeric legend so paired read/write or receive/transmit values remain visible at compact widths.
 
 In Machine Anatomy, press `T` to open the trend. Select CPU, memory, storage or network to select its series; choose 15, 30 or 60 seconds. **Usage / PSI avg10** switches to stall history for CPU/memory/storage. CPU utilization has a fixed 0–100% host scale; other plots share a measured scale across their traces. PSI is already a kernel rolling average, sampled into the displayed window.
 
