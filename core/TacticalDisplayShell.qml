@@ -106,19 +106,85 @@ FocusScope {
         anchors.margins: root.margin
         spacing: root.contentSpacing
         enabled: !root.sheetVisible
-        RowLayout {
+        GridLayout {
+            id: headerGrid
             Layout.fillWidth: true
-            spacing: root.nativePanelMode ? 12 : 20
-            ColumnLayout {
-                Layout.fillWidth: true; spacing: 3
-                Text { visible: !root.compact; text: "TACTICAL DISPLAY  /  LOCAL INSTRUMENTS"; textFormat: Text.PlainText; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize; font.letterSpacing: 1.5 }
-                Text { Layout.fillWidth: true; text: root.controller.view.info.name; textFormat: Text.PlainText; elide: Text.ElideRight; color: root.theme.colors.foreground; font.family: root.theme.fontFamily; font.pixelSize: root.compact ? root.theme.bodySize+6 : root.theme.titleSize; font.weight: Font.DemiBold }
-                Text { visible: !root.compact; Layout.fillWidth: true; text: root.controller.view.info.purpose; textFormat: Text.PlainText; elide: Text.ElideRight; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.bodySize }
+            columns: 2
+            columnSpacing: root.nativePanelMode ? 18 : 28
+            rowSpacing: 3
+
+            // One shared grid establishes exact horizontal tracks for both
+            // sides of the header. Status and session text therefore align to
+            // the same title/purpose baselines instead of inheriting Button
+            // padding and an unrelated implicit height.
+            Text {
+                id: headerEyebrow
+                Layout.columnSpan: 2
+                Layout.fillWidth: true
+                visible: !root.compact
+                text: "TACTICAL DISPLAY  /  LOCAL INSTRUMENTS"
+                textFormat: Text.PlainText
+                color: root.theme.colors.subdued
+                font.family: root.theme.fontFamily
+                font.pixelSize: root.theme.smallSize
+                font.letterSpacing: 1.5
             }
-            ColumnLayout {
-                spacing: 3
-                InstrumentButton { text: root.liveState + (root.controller.view.degraded.length ? " / PARTIAL" : ""); hint: "Inspect provider availability, age, errors and provenance"; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.setFlag("showCapabilities",true) }
-                Text { Layout.alignment: Qt.AlignRight; visible: !root.compact; text: root.controller.effectiveSettings.privacy ? "PRIVACY ON" : "LOCAL SESSION"; textFormat: Text.PlainText; color: root.controller.effectiveSettings.privacy ? root.theme.colors.warning : root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
+            Text {
+                id: headerTitle
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignBaseline
+                text: root.controller.view.info.name
+                textFormat: Text.PlainText
+                elide: Text.ElideRight
+                color: root.theme.colors.foreground
+                font.family: root.theme.fontFamily
+                font.pixelSize: root.compact ? root.theme.bodySize+6 : root.theme.titleSize
+                font.weight: Font.DemiBold
+            }
+            Text {
+                id: headerStatus
+                Layout.alignment: Qt.AlignRight | Qt.AlignBaseline
+                text: root.liveState + (root.controller.view.degraded.length ? " / PARTIAL" : "")
+                textFormat: Text.PlainText
+                color: root.controller.view.degraded.length ? root.theme.colors.warning : root.theme.colors.accent
+                font.family: root.theme.fontFamily
+                font.pixelSize: root.theme.smallSize
+                font.weight: Font.DemiBold
+                Accessible.role: Accessible.Button
+                Accessible.name: text
+                Accessible.description: "Inspect provider availability, age, errors and provenance"
+                MouseArea {
+                    id: statusHitArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: root.controller.setFlag("showCapabilities",true)
+                }
+                ToolTip.visible: statusHitArea.containsMouse
+                ToolTip.delay: 700
+                ToolTip.text: "Inspect provider availability, age, errors and provenance"
+            }
+            Text {
+                id: headerPurpose
+                Layout.fillWidth: true
+                Layout.alignment: Qt.AlignBaseline
+                visible: !root.compact
+                text: root.controller.view.info.purpose
+                textFormat: Text.PlainText
+                elide: Text.ElideRight
+                color: root.theme.colors.subdued
+                font.family: root.theme.fontFamily
+                font.pixelSize: root.theme.bodySize
+            }
+            Text {
+                id: headerSession
+                Layout.alignment: Qt.AlignRight | Qt.AlignBaseline
+                visible: !root.compact
+                text: root.controller.effectiveSettings.privacy ? "PRIVACY ON" : "LOCAL SESSION"
+                textFormat: Text.PlainText
+                color: root.controller.effectiveSettings.privacy ? root.theme.colors.warning : root.theme.colors.subdued
+                font.family: root.theme.fontFamily
+                font.pixelSize: root.theme.smallSize
             }
         }
         Flow {

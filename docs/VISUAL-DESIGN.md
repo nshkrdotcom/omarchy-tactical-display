@@ -33,3 +33,6 @@ A reviewer should identify who talks to a shared remote, who spawned a process, 
 
 When opened from the bar, Tactical Display follows the same Omarchy popup chrome contract as BEAM Deck: `KeyboardPanel` owns the outer frame and content box, Tactical adds no second frame or outer content margin, popup background/text tokens are used, native title/body/caption font sizes are used, and major internal gaps follow the same compact 12px-scale rhythm. Fullscreen summon keeps the Tactical-specific viewport frame and wider monitor-space breathing room.
 
+### Header alignment
+
+The identity and session-status areas share one two-column baseline grid. The live/provider state aligns with the instrument title row, while `LOCAL SESSION` / `PRIVACY ON` aligns with the purpose row. Interactive status text uses a hit target without Button padding, so clickability never changes the visible typographic alignment.

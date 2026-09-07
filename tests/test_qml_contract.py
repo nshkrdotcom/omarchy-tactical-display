@@ -190,6 +190,23 @@ class QmlContractTests(unittest.TestCase):
         ):
             self.assertIn(token, sheet)
 
+    def test_header_uses_shared_baseline_grid_for_right_status(self):
+        shell = (ROOT / 'core/TacticalDisplayShell.qml').read_text()
+        for token in (
+            'id: headerGrid',
+            'columns: 2',
+            'id: headerTitle',
+            'id: headerStatus',
+            'id: headerPurpose',
+            'id: headerSession',
+            'Layout.alignment: Qt.AlignRight | Qt.AlignBaseline',
+            'Accessible.role: Accessible.Button',
+            'onClicked: root.controller.setFlag("showCapabilities",true)',
+        ):
+            self.assertIn(token, shell)
+        header = shell[shell.index('id: headerGrid'):shell.index('Flow {', shell.index('id: headerGrid'))]
+        self.assertNotIn('InstrumentButton { text: root.liveState', header)
+
     def test_picker_has_explicit_keyboard_navigation(self):
         sheet = (ROOT / 'core/CommandSheet.qml').read_text()
         shell = (ROOT / 'core/TacticalDisplayShell.qml').read_text()

@@ -38,6 +38,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 ### Fixed
 
+- Aligned the header status/session block on the same title and purpose baselines as the left identity block, removing button-padding drift from the top-right chrome.
 - Fixed the printed press-and-hold Lua binding to invoke `scripts/invoke.py` with its required `--token` argument and the fixed `/usr/bin/python3` interpreter.
 - Hardened keyboard ownership around focused editors and controls so text entry, standard modified shortcuts, and control interaction are not intercepted by overlay-level commands.
 - Fixed picker digit routing so modified number keys do not switch instruments and unmodified `1`-`5` selection works reliably regardless of which picker child owns focus.
