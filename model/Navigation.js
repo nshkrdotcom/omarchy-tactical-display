@@ -2,7 +2,7 @@
 function fresh(instrument) {
     return {instrument:instrument || 'connection', selectedKey:'', selectedRecord:null, focusKey:'',
         context:null, history:[], expanded:[], collapsed:[], query:'', filters:{}, isolated:false, frozen:false,
-        showSearch:false, showHelp:false, showSettings:false, showPicker:false, showCapabilities:false, showIntro:false,
+        showSearch:false, showHelp:false, showSettings:false, showPicker:false, showCapabilities:false, showIntro:false, showOperator:false,
         showAllDetails:false, trend:false, notice:'', privacyOverride:null};
 }
 function clone(s) { return JSON.parse(JSON.stringify(s)); }
@@ -74,7 +74,7 @@ function resolveContext(s,nodes) {
 }
 function back(s) {
     var out=clone(s);
-    var panels=['showAllDetails','showSettings','showCapabilities','showHelp','showIntro','showPicker','showSearch'];
+    var panels=['showOperator','showAllDetails','showSettings','showCapabilities','showHelp','showIntro','showPicker','showSearch'];
     for(var i=0;i<panels.length;i++) if(out[panels[i]]) {out[panels[i]]=false; return {state:out,close:false};}
     if(out.query) {out.query=''; return {state:out,close:false};}
     if(Object.keys(out.filters).length) {out.filters={};return {state:out,close:false};}

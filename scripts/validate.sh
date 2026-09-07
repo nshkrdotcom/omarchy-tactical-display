@@ -32,6 +32,7 @@ if [[ -n "$LINT" && -n ${OMARCHY_PATH:-} && -d "$OMARCHY_PATH/shell" ]]; then
     core/InspectionPanel.qml
     core/InstrumentButton.qml
     core/NavigationController.qml
+    core/OperatorSheet.qml
     core/TacticalDisplayShell.qml
     visual/Field.qml
     visual/Trend.qml

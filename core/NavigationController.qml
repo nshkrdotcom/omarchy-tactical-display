@@ -3,6 +3,7 @@ import "../model/Navigation.js" as Navigation
 import "../model/InstrumentModel.js" as Instruments
 import "../model/Settings.js" as Settings
 import "../model/Lenses.js" as Lenses
+import "../model/Operator.js" as Operator
 
 Item {
     id: root
@@ -17,6 +18,14 @@ Item {
     property var pendingAction: null
     property string invocationMode: "toggle"
     property string hoveredKey: ""
+    property var operatorSession: Operator.freshSession()
+    property var frozenSession: Operator.freshSession()
+    property var pins: []
+    property var comparisonBaseline: null
+    readonly property var displaySession: navState.frozen ? frozenSession : operatorSession
+    readonly property double observationNow: (displayFrame.monotonic || 0) + (navState.frozen || !telemetry ? 0 : Math.max(0,(telemetry.clock-telemetry.lastSampleAt)/1000))
+    readonly property var attention: Operator.assess(displayFrame,{privacy:effectiveSettings.privacy,now:observationNow})
+    readonly property bool selectedPinned: !!selected && pins.some(function(p) { return p.key === root.selected.key })
     readonly property var effectiveSettings: {
         var values = JSON.parse(JSON.stringify(configuration ? configuration.values : Settings.defaults))
         if (navState.privacyOverride !== null) values.privacy = navState.privacyOverride
@@ -61,6 +70,10 @@ Item {
         detailFrame = null
         navState = Navigation.fresh(configuration ? configuration.values.lastInstrument : "connection")
         pendingAction = null
+        operatorSession = Operator.freshSession()
+        frozenSession = Operator.freshSession()
+        pins = []
+        comparisonBaseline = null
         hoveredKey = ""
         resolveTimer.stop()
         freezePending = false
@@ -70,6 +83,32 @@ Item {
     function setFlag(name, value) {
         var next = Object.assign({}, navState)
         next[name] = value
+        navState = next
+    }
+    function captureBaseline() {
+        if (!displayFrame.schemaVersion) return
+        comparisonBaseline = Operator.captureBaseline(displayFrame,{now:observationNow})
+    }
+    function togglePinSelection() {
+        if (!selected) return
+        if (!selectedPinned && pins.length >= 8) { setFlag("notice","Eight entities are pinned. Remove a pin in Briefing to make room."); return }
+        pins = Operator.togglePin(pins,selected,navState.instrument)
+    }
+    function removePin(key) { pins = pins.filter(function(p) { return p.key !== key }) }
+    function operatorReport() {
+        return Operator.report(displayFrame,displaySession,pins,comparisonBaseline,{privacy:effectiveSettings.privacy,frozen:navState.frozen,now:observationNow})
+    }
+    function jumpOperator(target) {
+        if (!target) return
+        setFlag("showOperator",false)
+        if (target.instrument === "capabilities") { setFlag("showCapabilities",true); return }
+        if (!Instruments.catalog.some(function(i) { return i.id === target.instrument })) return
+        chooseInstrument(target.instrument)
+        var next = Object.assign({},navState)
+        next.query = ""; next.filters = ({}); next.focusKey = ""; next.selectedKey = ""; next.selectedRecord = null
+        next.isolated = false; next.showSearch = false
+        next.context = target.entityKey ? {key:target.entityKey} : null
+        next.notice = ""
         navState = next
     }
     function syncTelemetryScope() {
@@ -208,6 +247,8 @@ Item {
         else if (event.key === Qt.Key_X) expandSelection()
         else if (event.key === Qt.Key_F) setFlag("isolated",!navState.isolated)
         else if (event.key === Qt.Key_I) setFlag("showPicker",!navState.showPicker)
+        else if (event.key === Qt.Key_A && !(event.modifiers & Qt.ShiftModifier)) setFlag("showOperator",!navState.showOperator)
+        else if (event.key === Qt.Key_W && !(event.modifiers & Qt.ShiftModifier)) togglePinSelection()
         else if (event.key === Qt.Key_D) inspectMore()
         else if (event.key === Qt.Key_P) privacy()
         else if (event.key === Qt.Key_Comma) setFlag("showSettings",!navState.showSettings)
@@ -255,6 +296,7 @@ Item {
     Connections {
         target: root.telemetry
         function onReceived(frame) {
+            root.operatorSession = Operator.ingest(root.operatorSession,frame)
             root.liveFrame = frame
             if (!root.navState.frozen) {
                 root.displayFrame = frame
@@ -272,6 +314,7 @@ Item {
             root.freezePending = false
             root.setFlag("frozen",frame.frozen)
             root.displayFrame = frame.frozen ? frame.snapshot : root.liveFrame
+            if (frame.frozen) root.frozenSession = Operator.ingest(root.operatorSession,frame.snapshot)
             root.detailFrame = null
         }
         function onBackendErrorChanged() { if (root.telemetry.backendError && root.freezePending) { root.freezePending = false; root.freezeRequestId = -1; freezeTimeout.stop(); root.setFlag("notice","Snapshot request failed; retry after the helper recovers.") } }

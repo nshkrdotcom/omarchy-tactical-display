@@ -24,9 +24,10 @@ FocusScope {
     readonly property int contentSpacing: root.nativePanelMode ? Style.spacing.xxl : root.compact ? Style.spacing.md : Style.spacing.xl
     property bool showViewportFrame: true
     readonly property int frameInset: Style.spacing.sm
-    readonly property bool sheetVisible: !!controller.pendingAction || controller.navState.showPicker || controller.navState.showIntro || controller.navState.showHelp || controller.navState.showSettings || controller.navState.showCapabilities
+    readonly property bool sheetVisible: !!controller.pendingAction || controller.navState.showPicker || controller.navState.showIntro || controller.navState.showHelp || controller.navState.showSettings || controller.navState.showCapabilities || controller.navState.showOperator
     readonly property bool pickerSheetVisible:
         !controller.pendingAction &&
+        !controller.navState.showOperator &&
         !controller.navState.showSettings &&
         !controller.navState.showCapabilities &&
         !controller.navState.showHelp &&
@@ -272,6 +273,13 @@ FocusScope {
                     onClicked: root.controller.chooseInstrument(modelData.id)
                 }
             }
+            InstrumentButton {
+                text: "A Briefing"+(root.controller.attention.length ? " · "+root.controller.attention.length : "")
+                hint: "Attention, recent activity, pinned entities and baseline comparison"
+                bordered: true
+                paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize
+                onClicked: root.controller.setFlag("showOperator",true)
+            }
         }
 
         Rectangle {
@@ -436,7 +444,12 @@ FocusScope {
             textFormat: Text.PlainText; elide: Text.ElideRight; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize
         }
     }
-    CommandSheet { anchors.fill: parent; visible: root.sheetVisible; controller: root.controller; theme: root.theme; compactChrome: root.nativePanelMode }
+    CommandSheet { anchors.fill: parent; visible: root.sheetVisible && !root.controller.navState.showOperator; controller: root.controller; theme: root.theme; compactChrome: root.nativePanelMode }
+    Loader {
+        anchors.fill: parent
+        active: root.controller.navState.showOperator
+        sourceComponent: OperatorSheet { controller: root.controller; theme: root.theme }
+    }
     NumberAnimation { id: modeTransition; target: field; property: "opacity"; from: 0.68; to: 1; duration: root.controller.effectiveSettings.animation === "reduced" ? 0 : root.controller.effectiveSettings.animation === "vivid" ? 220 : 130; easing.type: Easing.OutCubic }
     Connections { target: root.controller; function onInstrumentSelected(instrument) { modeTransition.restart(); root.focusField() } function onSearchRequested() { searchInput.forceActiveFocus() } }
     onFocusedItemChanged: {
