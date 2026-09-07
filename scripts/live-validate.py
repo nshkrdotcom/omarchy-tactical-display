@@ -123,6 +123,18 @@ def hide_and_reap(pid: int) -> None:
     raise RuntimeError('Telemetry helper survived shell hide')
 
 
+def failure_context(report: dict) -> dict:
+    """Read process state before finally hides/unloads the native instance."""
+    recent = report['soak'][-1] if report['soak'] else report['cycles'][-1] if report['cycles'] else {}
+    helper = recent.get('helper') or {}
+    shell = recent.get('shell') or recent.get('shellAtOpen') or {}
+    return {
+        'matchingHelpers': matching_helpers(),
+        'lastKnownHelperNow': proc_stat(helper['pid']) if helper.get('pid') else None,
+        'lastKnownShellNow': proc_stat(shell['pid']) if shell.get('pid') else None,
+    }
+
+
 def main() -> int:
     p=argparse.ArgumentParser(description=__doc__)
     p.add_argument('--run',action='store_true',help='explicit permission to summon/hide this overlay repeatedly')
@@ -235,6 +247,10 @@ def main() -> int:
         report['status']='PASS';report['soakStatus']='PASS' if a.soak_seconds>=600 else 'PARTIAL' if a.soak_seconds else 'NOT RUN';report['scope']='Native IPC/helper lifecycle plus fixed-instrument soak with configured CPU-memory-FD-child/readiness/sample-latency containment; manual interaction/visual gates remain NOT RUN'
     except (OSError,ValueError,RuntimeError,subprocess.SubprocessError,KeyboardInterrupt) as exc:
         report['status']='FAIL';report['error']=str(exc)
+        try:
+            report['failureContext'] = failure_context(report)
+        except OSError as evidence_error:
+            report['failureContext'] = {'error': str(evidence_error)}
     finally:
         try:command('omarchy-shell','shell','hide',PLUGIN)
         except (OSError,RuntimeError,subprocess.SubprocessError):pass

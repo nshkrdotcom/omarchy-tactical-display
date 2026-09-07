@@ -108,6 +108,8 @@ The first command requires Omarchy, Hyprland and Wayland. Its lifecycle phase re
 
 The audio runner requires `pw-dump`, `pw-play` and a real sink. It creates a temporary silent stream, verifies that the actual stream and route appear, then cleans up its own stream. It does not change defaults, volume or mute.
 
+On native-runner failure, `failureContext` records matching helpers and the last known helper/shell process state **before cleanup**. This distinguishes a missing loaded plugin instance from exited processes without allowing automatic hide/unload to erase that evidence. Compare `startTicks` with prior samples before interpreting a reused PID. The runner does not relax its limits or silently reopen a lost instance.
+
 ## Profiling
 
 ```bash
