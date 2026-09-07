@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import qs.Commons
 import "../model/InstrumentModel.js" as Instruments
 import "../model/Lenses.js" as Lenses
 
@@ -10,9 +11,10 @@ FocusScope {
     required property var controller
     required property var theme
     property bool compactChrome: false
-    readonly property int outerGap: root.compactChrome ? 12 : 20
-    readonly property int sideGap: root.compactChrome ? 14 : 24
-    readonly property int sectionGap: root.compactChrome ? 12 : 16
+    readonly property int outerGap: root.compactChrome ? Style.spacing.xxl : Style.space(20)
+    readonly property int sideGap: root.compactChrome ? Style.spacing.xxxl : Style.space(24)
+    readonly property int sectionGap: root.compactChrome ? Style.spacing.xxl : Style.space(16)
+    readonly property int headerBodyGap: root.compactChrome ? Style.spacing.lg : Style.spacing.xl
     readonly property string kind: controller.pendingAction ? "confirm" : controller.navState.showSettings ? "settings" : controller.navState.showCapabilities ? "capabilities" : controller.navState.showHelp ? "help" : "picker"
     readonly property string heading: kind === "confirm" ? "Confirm audio change" : kind === "settings" ? "Instrument settings" : kind === "capabilities" ? "Data sources and freshness" : kind === "help" ? controller.view.info.name + " / legend" : controller.navState.showIntro ? "See how your machine behaves" : "Choose an instrument"
     readonly property var capabilities: Object.keys(controller.displayFrame.capabilities||{}).map(key => controller.displayFrame.capabilities[key])
@@ -88,22 +90,22 @@ FocusScope {
     Rectangle {
         id: panel
         anchors.centerIn: parent
-        width: Math.min(780,Math.max(260,root.width-(root.outerGap*2)))
-        height: Math.min(Math.max(160,root.height-(root.outerGap*2)),sheetContent.implicitHeight+(root.compactChrome ? 64 : 88))
-        radius: 5
+        width: Math.min(Style.space(780),Math.max(Style.space(260),root.width-(root.outerGap*2)))
+        height: Math.min(Math.max(Style.space(160),root.height-(root.outerGap*2)),sheetContent.implicitHeight+(root.compactChrome ? Style.space(64) : Style.space(88)))
+        radius: Style.cornerRadius
         color: root.theme.colors.panel
         border.color: root.theme.colors.line
-        border.width: 1
+        border.width: Style.spacing.hairline
         MouseArea { anchors.fill: parent; onClicked: mouse => mouse.accepted = true }
         RowLayout {
             id: sheetHeader
             anchors.top: parent.top; anchors.left: parent.left; anchors.right: parent.right; anchors.margins: root.outerGap
-            Text { Layout.fillWidth: true; text: root.heading; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.foreground; font.family: root.theme.fontFamily; font.pixelSize: root.theme.bodySize+4; font.weight: Font.DemiBold }
+            Text { Layout.fillWidth: true; text: root.heading; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.foreground; font.family: root.theme.fontFamily; font.pixelSize: root.theme.bodySize+Style.spacing.sm; font.weight: Font.DemiBold }
             InstrumentButton { text: "Back"; hint: "Backspace / Return to instrument"; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.back(); onActiveFocusChanged: if (activeFocus) root.reveal(this) }
         }
         Flickable {
             id: scroll
-            anchors.fill: parent; anchors.topMargin: sheetHeader.height+(root.compactChrome ? 20 : 30); anchors.bottomMargin: root.outerGap; anchors.leftMargin: root.sideGap; anchors.rightMargin: root.sideGap
+            anchors.fill: parent; anchors.topMargin: root.outerGap+sheetHeader.height+root.headerBodyGap; anchors.bottomMargin: root.outerGap; anchors.leftMargin: root.sideGap; anchors.rightMargin: root.sideGap
             clip: true
             boundsBehavior: Flickable.StopAtBounds
             contentWidth: width
@@ -116,7 +118,7 @@ FocusScope {
                 width: scroll.availableWidth
                 spacing: root.sectionGap
                 Column {
-                    width: parent.width; spacing: root.compactChrome ? 10 : 14; visible: root.kind === "picker"
+                    width: parent.width; spacing: root.compactChrome ? Style.spacing.xl : Style.spacing.xxxl; visible: root.kind === "picker"
                     Text { width: parent.width; text: "Tactical Display is local, live instrumentation over your desktop. Press 1-5 to switch, / to search, Space to freeze, ? for the legend, and Escape to close immediately."; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.bodySize }
                     Repeater {
                         id: instrumentRepeater
@@ -130,7 +132,7 @@ FocusScope {
                             activeFocusOnTab: true
                             Column {
                                 id: instrumentColumn
-                                width: parent.width; spacing: 4
+                                width: parent.width; spacing: Style.spacing.sm
                                 InstrumentButton { id: instrumentButton; focus: true; width: parent.width; text: instrumentRow.modelData.key+"  "+instrumentRow.modelData.name; chosen: root.controller.navState.instrument===instrumentRow.modelData.id; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.bodySize; onClicked: root.controller.chooseInstrument(instrumentRow.modelData.id); onActiveFocusChanged: if (activeFocus) { root.pickerIndex=instrumentRow.index; root.reveal(instrumentRow) } }
                                 Text { width: parent.width; text: instrumentRow.modelData.purpose+"\n"+root.capabilityLabel(instrumentRow.modelData); textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
                             }
@@ -138,28 +140,28 @@ FocusScope {
                     }
                 }
                 Column {
-                    width: parent.width; spacing: root.compactChrome ? 12 : 15; visible: root.kind === "help"
+                    width: parent.width; spacing: root.compactChrome ? Style.spacing.xxl : Style.space(15); visible: root.kind === "help"
                     Repeater {
                         model: root.controller.view.info.legend
                         delegate: Text { required property string modelData; width: scroll.availableWidth; text: modelData; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.foreground; font.family: root.theme.fontFamily; font.pixelSize: root.theme.bodySize }
                     }
-                    Rectangle { width: parent.width; height: 1; color: root.theme.colors.line }
+                    Rectangle { width: parent.width; height: Style.spacing.hairline; color: root.theme.colors.line }
                     Text { width: parent.width; text: "1-5  switch instrument\nTab / arrows  traverse entities    F6  navigate controls\nEnter  focus    X  expand / collapse    F  isolate\nEscape  close immediately    Backspace  back    R  reset\n/  search    Space  freeze / resume    D  exact details\nV  origin / storage / audio lens    E  process emphasis\nN  TCP / UDP    B  connection state    L  listeners    O  loopback\nT  machine trend    C  copy selected details\nP  privacy    I  instrument picker    ,  settings"; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
                     Text { width: parent.width; text: "Freeze pauses view updates for inspection while sampling continues in the background. Privacy mode masks entity identities and desktop contents for screen sharing."; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
                     InstrumentButton { text: "Show introduction / picker"; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: { root.controller.setFlag("showHelp",false); root.controller.setFlag("showPicker",true) } }
                 }
                 Column {
-                    width: parent.width; spacing: root.compactChrome ? 12 : 18; visible: root.kind === "settings"
+                    width: parent.width; spacing: root.compactChrome ? Style.spacing.xxl : Style.spacing.huge; visible: root.kind === "settings"
                     Text { width: parent.width; visible: !!root.controller.configuration && (!!root.controller.configuration.persistenceMessage || root.controller.configuration.warnings.length > 0); text: root.controller.configuration ? root.controller.configuration.persistenceMessage+" "+root.controller.configuration.warnings.join(" ") : ""; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.warning; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
                     Repeater {
                         model: Lenses.settingsRows()
                         delegate: Column {
                             id: preference
                             required property var modelData
-                            width: scroll.availableWidth; spacing: 5
+                            width: scroll.availableWidth; spacing: Style.spacing.md
                             Text { width: parent.width; text: preference.modelData.label; textFormat: Text.PlainText; color: root.theme.colors.foreground; font.family: root.theme.fontFamily; font.pixelSize: root.theme.bodySize }
                             Flow {
-                                width: parent.width; spacing: 5
+                                width: parent.width; spacing: Style.spacing.md
                                 Repeater {
                                     model: preference.modelData.choices
                                     delegate: InstrumentButton {
@@ -186,7 +188,7 @@ FocusScope {
                         delegate: Column {
                             id: capability
                             required property var modelData
-                            width: scroll.availableWidth; spacing: 5
+                            width: scroll.availableWidth; spacing: Style.spacing.md
                             Text { width: parent.width; text: capability.modelData.provider+" / "+capability.modelData.status; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: capability.modelData.status==="available" ? root.theme.colors.accent : root.theme.colors.warning; font.family: root.theme.fontFamily; font.pixelSize: root.theme.bodySize }
                             Text { width: parent.width; text: root.controller.effectiveSettings.privacy ? "Provider "+capability.modelData.provider+" / "+(capability.modelData.errorKind||"No reported error")+". Identity-bearing messages hidden." : capability.modelData.source+"\n"+(capability.modelData.reason||"")+"\n"+(capability.modelData.suggestion||""); textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; color: root.theme.colors.foreground; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
                             Text { width: parent.width; text: "Cadence "+capability.modelData.intervalSeconds+" s / sample "+capability.modelData.durationMs+" ms / age "+(typeof capability.modelData.sampledAt==="number" && root.controller.displayFrame.monotonic ? Math.max(0,root.controller.displayFrame.monotonic-capability.modelData.sampledAt).toFixed(1)+" s" : "not sampled"); textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
@@ -199,7 +201,7 @@ FocusScope {
                     width: parent.width; spacing: root.sectionGap; visible: root.kind === "confirm"
                     Text { width: parent.width; text: root.controller.pendingAction ? "Apply "+root.controller.pendingAction.action+" to "+(root.controller.effectiveSettings.privacy ? "selected audio entity" : root.controller.pendingAction.name)+"?\nThis will modify the active audio configuration. You can undo recent changes from the detail panel." : ""; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.foreground; font.family: root.theme.fontFamily; font.pixelSize: root.theme.bodySize }
                     Flow {
-                        width: parent.width; spacing: 8
+                        width: parent.width; spacing: Style.spacing.lg
                         InstrumentButton { text: "Cancel"; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.bodySize; onClicked: root.controller.pendingAction = null }
                         InstrumentButton { text: "Confirm change"; chosen: true; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.bodySize; onClicked: root.controller.confirmAction() }
                     }

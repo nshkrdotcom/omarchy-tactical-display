@@ -1,16 +1,19 @@
 import QtQuick
 import QtQuick.Controls
+import qs.Commons
 
 Button {
     id: root
     required property var paletteColors
     property string fontFamily: "monospace"
-    property int textSize: 13
+    property int textSize: Style.font.caption
     property bool chosen: false
+    property bool bordered: false
     property string hint: ""
-    padding: 9
-    topPadding: 7
-    bottomPadding: 7
+    leftPadding: Style.spacing.controlPaddingX
+    rightPadding: Style.spacing.controlPaddingX
+    topPadding: Style.spacing.controlPaddingY
+    bottomPadding: Style.spacing.controlPaddingY
     hoverEnabled: true
     focusPolicy: Qt.StrongFocus
     Accessible.name: text
@@ -28,9 +31,9 @@ Button {
     }
     background: Rectangle {
         color: root.chosen ? root.paletteColors.accent : root.down ? root.paletteColors.plane : root.hovered ? root.paletteColors.panel : "transparent"
-        border.width: root.chosen ? 0 : 1
-        border.color: root.activeFocus ? root.paletteColors.accent : root.hovered ? root.paletteColors.line : "transparent"
-        radius: 3
+        border.width: root.chosen ? 0 : (root.bordered || root.activeFocus || root.hovered ? Style.spacing.hairline : 0)
+        border.color: root.activeFocus ? root.paletteColors.accent : root.hovered ? root.paletteColors.line : root.bordered ? root.paletteColors.line : "transparent"
+        radius: Style.cornerRadius
     }
     ToolTip.visible: hovered && hint.length > 0
     ToolTip.delay: 700

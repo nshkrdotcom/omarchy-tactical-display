@@ -2,6 +2,7 @@ pragma ComponentBehavior: Bound
 import QtQuick
 import QtQuick.Controls
 import Quickshell
+import qs.Commons
 import "../model/Inspection.js" as Inspection
 
 Item {
@@ -17,18 +18,18 @@ Item {
     property string copiedMessage: ""
     property int relatedLimit: 12
     signal nativePanelRequested(string id)
-    Rectangle { anchors.fill: parent; color: root.theme.colors.panel; opacity: 0.97; radius: 4 }
-    Rectangle { width: 2; height: parent.height; color: root.theme.colors.line }
+    Rectangle { anchors.fill: parent; color: root.theme.colors.panel; opacity: 0.97; radius: Style.cornerRadius }
+    Rectangle { width: Style.spacing.hairline; height: parent.height; color: root.theme.colors.line }
     ScrollView {
         id: scroll
         anchors.fill: parent
-        anchors.margins: 18
+        anchors.margins: Style.spacing.huge
         clip: true
         contentWidth: availableWidth
         ScrollBar.horizontal.policy: ScrollBar.AlwaysOff
         Column {
             width: scroll.availableWidth
-            spacing: 12
+            spacing: Style.spacing.xxl
             Text {
                 width: parent.width
                 text: root.selected ? root.selected.name : "Inspect an entity"
@@ -36,7 +37,7 @@ Item {
                 wrapMode: Text.WrapAnywhere
                 color: root.theme.colors.foreground
                 font.family: root.theme.fontFamily
-                font.pixelSize: root.theme.bodySize + 3
+                font.pixelSize: root.theme.bodySize + Style.spacing.xs
                 font.weight: Font.DemiBold
             }
             Text {
@@ -49,7 +50,7 @@ Item {
                 font.pixelSize: root.theme.smallSize
             }
             Flow {
-                width: parent.width; spacing: 4
+                width: parent.width; spacing: Style.spacing.sm
                 InstrumentButton { visible: root.selected && root.selected.kind==="application"; text: "X Expand / collapse"; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.expandSelection() }
                 InstrumentButton { text: "Focus"; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.focusSelection() }
                 InstrumentButton { text: root.controller.navState.isolated ? "Context" : "Isolate"; chosen: root.controller.navState.isolated; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.setFlag("isolated",!root.controller.navState.isolated) }
@@ -63,17 +64,17 @@ Item {
                     id: detailRow
                     required property var modelData
                     width: scroll.availableWidth
-                    spacing: 3
+                    spacing: Style.spacing.xs
                     Text { width: parent.width; text: detailRow.modelData.label; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
                     Text { width: parent.width; text: detailRow.modelData.value; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; color: root.theme.colors.foreground; font.family: root.theme.fontFamily; font.pixelSize: root.theme.bodySize }
                     Text { width: parent.width; visible: root.controller.navState.showAllDetails; text: detailRow.modelData.classification + " / " + detailRow.modelData.source; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
                 }
             }
             InstrumentButton { visible: !root.controller.navState.showAllDetails && root.rows.length > 10; text: "All " + root.rows.length + " fields + provenance"; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.inspectMore() }
-            Rectangle { width: parent.width; height: 1; color: root.theme.colors.line }
+            Rectangle { width: parent.width; height: Style.spacing.hairline; color: root.theme.colors.line }
             Text { width: parent.width; text: "Follow context"; textFormat: Text.PlainText; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
             Flow {
-                width: parent.width; spacing: 4
+                width: parent.width; spacing: Style.spacing.sm
                 InstrumentButton { text: "Processes"; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.chooseInstrument("processes") }
                 InstrumentButton { text: "Connections"; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.chooseInstrument("connection") }
                 InstrumentButton { text: "Machine"; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.chooseInstrument("machine") }
@@ -99,21 +100,21 @@ Item {
                 delegate: Column {
                     id: socketRow
                     required property var modelData
-                    width: scroll.availableWidth; spacing: 4
+                    width: scroll.availableWidth; spacing: Style.spacing.sm
                     Text { width: parent.width; text: socketRow.modelData.title; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; color: root.theme.colors.foreground; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
                     Text { width: parent.width; text: socketRow.modelData.details; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
                     Text { width: parent.width; visible: root.controller.navState.showAllDetails; text: socketRow.modelData.source; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize }
-                    Rectangle { width: parent.width; height: 1; color: root.theme.colors.line; opacity: 0.5 }
+                    Rectangle { width: parent.width; height: Style.spacing.hairline; color: root.theme.colors.line; opacity: 0.5 }
                 }
             }
             Flow {
-                width: parent.width; spacing: 4
+                width: parent.width; spacing: Style.spacing.sm
                 visible: root.controller.navState.showAllDetails && root.controller.detailFrame && root.controller.detailFrame.total > 24
                 InstrumentButton { text: "Previous sockets"; enabled: (root.controller.detailFrame||{}).offset > 0; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.detailPage(Math.max(0,root.controller.detailFrame.offset-24)) }
                 InstrumentButton { text: "Next sockets"; enabled: root.controller.detailFrame && root.controller.detailFrame.nextOffset !== null && root.controller.detailFrame.nextOffset !== undefined; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.detailPage(root.controller.detailFrame.nextOffset) }
             }
             Flow {
-                width: parent.width; spacing: 4
+                width: parent.width; spacing: Style.spacing.sm
                 visible: root.audioNode && root.controller.effectiveSettings.audioActions
                 InstrumentButton { text: "Mute / unmute"; enabled: !root.controller.navState.frozen && (root.controller.currentDetail||{}).mute !== null; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.requestAction("mute") }
                 InstrumentButton { text: "Make default"; visible: root.selected && ["sink","source"].indexOf(root.selected.kind) >= 0; enabled: !root.controller.navState.frozen; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.requestAction("default") }

@@ -75,6 +75,7 @@ class QmlContractTests(unittest.TestCase):
             'bar: root.bar',
             'focusTarget: displayShell',
             'centerOnBar: true',
+            'padding: Style.space(8)',
             'contentWidth: panel.fittedContentWidth(Style.space(1280))',
             'contentHeight: panel.cappedContentHeight(Style.space(840))',
             'TacticalDisplayShell {',
@@ -138,14 +139,14 @@ class QmlContractTests(unittest.TestCase):
         shell = (ROOT / 'core/TacticalDisplayShell.qml').read_text()
         for token in (
             'property bool nativePanelMode: false',
-            'readonly property int margin: root.nativePanelMode ? 0 : Math.max(10,Math.min(20,width*0.012))',
+            'readonly property int margin: root.nativePanelMode ? 0 : Math.max(Style.spacing.xl, Math.min(Style.space(20), width * 0.012))',
             'property bool showViewportFrame: true',
-            'readonly property int frameInset: 4',
+            'readonly property int frameInset: Style.spacing.sm',
             'id: viewportFrame',
             'visible: root.showViewportFrame',
             'anchors.margins: root.frameInset',
             'border.color: root.theme.colors.accent',
-            'border.width: 2',
+            'border.width: Style.space(2)',
         ):
             self.assertIn(token, shell)
 
@@ -157,16 +158,17 @@ class QmlContractTests(unittest.TestCase):
 
         for token in (
             'nativePanelMode: true',
+            'padding: Style.space(8)',
             'ThemeAdapter { id: themeAdapter; popupSurface: true }',
         ):
             self.assertIn(token, panel)
 
         for token in (
-            'readonly property int margin: root.nativePanelMode ? 0 : Math.max(10,Math.min(20,width*0.012))',
-            'readonly property int contentSpacing: root.nativePanelMode ? 12 : root.compact ? 6 : 10',
+            'readonly property int contentSpacing: root.nativePanelMode ? Style.spacing.xxl : root.compact ? Style.spacing.md : Style.spacing.xl',
             'spacing: root.contentSpacing',
-            'spacing: root.nativePanelMode ? 12 : 20',
-            'padding: root.nativePanelMode ? 8 : 10',
+            'spacing: root.nativePanelMode ? Style.spacing.xxl : Style.space(20)',
+            'leftPadding: Style.spacing.controlPaddingX',
+            'topPadding: Style.spacing.inputPaddingY',
             'compactChrome: root.nativePanelMode',
         ):
             self.assertIn(token, shell)
@@ -184,28 +186,53 @@ class QmlContractTests(unittest.TestCase):
 
         for token in (
             'property bool compactChrome: false',
-            'readonly property int outerGap: root.compactChrome ? 12 : 20',
+            'readonly property int outerGap: root.compactChrome ? Style.spacing.xxl : Style.space(20)',
             'anchors.margins: root.outerGap',
-            'readonly property int sideGap: root.compactChrome ? 14 : 24',
+            'readonly property int sideGap: root.compactChrome ? Style.spacing.xxxl : Style.space(24)',
+            'anchors.topMargin: root.outerGap+sheetHeader.height+root.headerBodyGap',
         ):
             self.assertIn(token, sheet)
 
-    def test_header_uses_shared_baseline_grid_for_right_status(self):
+    def test_header_uses_normalized_identity_action_and_subnav_structure(self):
         shell = (ROOT / 'core/TacticalDisplayShell.qml').read_text()
         for token in (
-            'id: headerGrid',
-            'columns: 2',
-            'id: headerTitle',
+            'id: headerBar',
+            'id: identityBlock',
+            'text: "TACTICAL DISPLAY"',
+            'font.pixelSize: root.nativePanelMode ? Style.font.subtitle : root.theme.titleSize',
+            'Item { Layout.fillWidth: true }',
+            'id: headerActions',
             'id: headerStatus',
-            'id: headerPurpose',
-            'id: headerSession',
-            'Layout.alignment: Qt.AlignRight | Qt.AlignBaseline',
+            'id: headerContext',
+            'id: instrumentSelectorBar',
+            'id: chromeSeparator',
+            'text: "Close"',
+            'bordered: true',
             'Accessible.role: Accessible.Button',
             'onClicked: root.controller.setFlag("showCapabilities",true)',
         ):
             self.assertIn(token, shell)
-        header = shell[shell.index('id: headerGrid'):shell.index('Flow {', shell.index('id: headerGrid'))]
-        self.assertNotIn('InstrumentButton { text: root.liveState', header)
+        self.assertNotIn('id: headerGrid', shell)
+        self.assertLess(shell.index('id: headerActions'), shell.index('id: instrumentSelectorBar'))
+        actions = shell[shell.index('id: headerActions'):shell.index('id: instrumentSelectorBar')]
+        self.assertNotIn('model: Instruments.catalog', actions)
+
+    def test_instrument_button_and_chrome_use_host_spacing_tokens(self):
+        button = (ROOT / 'core/InstrumentButton.qml').read_text()
+        inspection = (ROOT / 'core/InspectionPanel.qml').read_text()
+        trend = (ROOT / 'visual/Trend.qml').read_text()
+        for token in (
+            'property bool bordered: false',
+            'leftPadding: Style.spacing.controlPaddingX',
+            'topPadding: Style.spacing.controlPaddingY',
+            'Style.spacing.hairline',
+            'radius: Style.cornerRadius',
+        ):
+            self.assertIn(token, button)
+        self.assertIn('anchors.margins: Style.spacing.huge', inspection)
+        self.assertIn('radius: Style.cornerRadius', inspection)
+        self.assertIn('spacing: Style.spacing.huge', trend)
+        self.assertIn('anchors.bottomMargin: Style.spacing.xl', trend)
 
     def test_picker_has_explicit_keyboard_navigation(self):
         sheet = (ROOT / 'core/CommandSheet.qml').read_text()

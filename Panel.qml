@@ -80,6 +80,8 @@ Ui.Panel {
         open: root.opened
         focusTarget: displayShell
         centerOnBar: true
+        // Match the shared cockpit frame rather than inheriting generic popup padding.
+        padding: Style.space(8)
 
         contentWidth: panel.fittedContentWidth(Style.space(1280))
         contentHeight: panel.cappedContentHeight(Style.space(840))

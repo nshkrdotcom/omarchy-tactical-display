@@ -1,5 +1,6 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import qs.Commons
 import "../model/InstrumentModel.js" as Instruments
 
 Item {
@@ -18,10 +19,10 @@ Item {
         }
         return maxValue || 1
     }
-    Rectangle { anchors.fill: parent; color: root.theme.colors.panel; radius: 3 }
+    Rectangle { anchors.fill: parent; color: root.theme.colors.panel; radius: Style.cornerRadius }
     Row {
         id: legend
-        x: 12; y: 8; spacing: 18
+        x: Style.spacing.xxl; y: Style.spacing.lg; spacing: Style.spacing.huge
         Repeater {
             model: root.series
             delegate: Text {
@@ -34,21 +35,21 @@ Item {
             }
         }
     }
-    Text { anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 8; text: "Last 60 seconds"; textFormat: Text.PlainText; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize; visible: root.width > 570 }
+    Text { anchors.right: parent.right; anchors.top: parent.top; anchors.margins: Style.spacing.lg; text: "Last 60 seconds"; textFormat: Text.PlainText; color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize; visible: root.width > Style.space(570) }
     Canvas {
         id: trace
         anchors.fill: parent
-        anchors.leftMargin: 12; anchors.rightMargin: 12; anchors.topMargin: legend.height+18; anchors.bottomMargin: 10
+        anchors.leftMargin: Style.spacing.xxl; anchors.rightMargin: Style.spacing.xxl; anchors.topMargin: legend.height+Style.spacing.huge; anchors.bottomMargin: Style.spacing.xl
         antialiasing: true
         onPaint: {
             var c=getContext("2d")
             c.clearRect(0,0,width,height)
-            c.strokeStyle=root.theme.colors.line; c.lineWidth=1
+            c.strokeStyle=root.theme.colors.line; c.lineWidth=Style.spacing.hairline
             c.beginPath();c.moveTo(0,height-1);c.lineTo(width,height-1);c.stroke()
             if (!root.samples.length) return
             var end=root.samples[root.samples.length-1].at
             for (var j=0;j<root.series.length;j++) {
-                c.strokeStyle=root.theme.colors[root.series[j].role];c.lineWidth=j===0?2:1
+                c.strokeStyle=root.theme.colors[root.series[j].role];c.lineWidth=j===0?Style.space(2):Style.spacing.hairline
                 c.beginPath();var started=false
                 for (var i=0;i<root.samples.length;i++) {
                     var s=root.samples[i],v=s[root.series[j].key]

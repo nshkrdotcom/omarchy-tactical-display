@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import Quickshell
+import qs.Commons
 import "../visual" as Visual
 import "../model/InstrumentModel.js" as Instruments
 import "../model/Lenses.js" as Lenses
@@ -16,12 +17,13 @@ FocusScope {
     readonly property var statistics: ({nodes:field.scene.nodes.length,edges:field.scene.edges.length,
         labels:field.scene.labels.length,omittedNodes:field.hiddenCount,
         omittedEdges:field.scene.omittedEdges || 0,layoutDurationMs:field.layoutDurationMs})
-    readonly property bool compact: height < 680
+    readonly property bool compact: height < Style.space(680)
+    readonly property bool compactWidth: width < Style.space(1050)
     property bool nativePanelMode: false
-    readonly property int margin: root.nativePanelMode ? 0 : Math.max(10,Math.min(20,width*0.012))
-    readonly property int contentSpacing: root.nativePanelMode ? 12 : root.compact ? 6 : 10
+    readonly property int margin: root.nativePanelMode ? 0 : Math.max(Style.spacing.xl, Math.min(Style.space(20), width * 0.012))
+    readonly property int contentSpacing: root.nativePanelMode ? Style.spacing.xxl : root.compact ? Style.spacing.md : Style.spacing.xl
     property bool showViewportFrame: true
-    readonly property int frameInset: 4
+    readonly property int frameInset: Style.spacing.sm
     readonly property bool sheetVisible: !!controller.pendingAction || controller.navState.showPicker || controller.navState.showIntro || controller.navState.showHelp || controller.navState.showSettings || controller.navState.showCapabilities
     readonly property bool pickerSheetVisible:
         !controller.pendingAction &&
@@ -31,7 +33,15 @@ FocusScope {
         (controller.navState.showPicker || controller.navState.showIntro)
     readonly property var lenses: Lenses.controls(controller.navState.instrument,controller.navState,controller.effectiveSettings)
     readonly property var hoverEntity: controller.view.allNodes.filter(n => n.key === controller.hoveredKey)[0] || null
-    readonly property string liveState: controller.navState.frozen ? "FROZEN " + (controller.displayFrame.wallTime ? new Date(controller.displayFrame.wallTime*1000).toLocaleTimeString() : "") : controller.telemetry ? controller.telemetry.statusText : "ACQUIRING"
+    readonly property string headerState: controller.navState.frozen ? "FROZEN" : controller.telemetry ? controller.telemetry.statusText : "ACQUIRING"
+    readonly property string headerContext: {
+        var parts = [controller.view.info.name]
+        if (controller.view.degraded.length) parts.push("PARTIAL")
+        if (controller.effectiveSettings.privacy) parts.push("PRIVACY")
+        if (controller.navState.frozen && controller.displayFrame.wallTime)
+            parts.push(new Date(controller.displayFrame.wallTime * 1000).toLocaleTimeString())
+        return parts.join(" · ")
+    }
     signal nativePanelRequested(string id)
     property bool controlsFocus: false
     readonly property var focusedItem: Window.activeFocusItem
@@ -95,121 +105,185 @@ FocusScope {
         anchors.margins: root.frameInset
         color: "transparent"
         border.color: root.theme.colors.accent
-        border.width: 2
+        border.width: Style.space(2)
         opacity: 0.9
     }
-    Rectangle { visible: !root.nativePanelMode; x: root.margin-8; y: root.margin-8; width: root.width-2*root.margin+16; height: worldArea.y+8; color: root.theme.colors.background }
-    Rectangle { visible: !root.nativePanelMode; x: root.margin-8; y: root.margin+worldArea.y+worldArea.height+4; width: root.width-2*root.margin+16; height: root.height-y; color: root.theme.colors.background }
+    Rectangle { visible: !root.nativePanelMode; x: root.margin-Style.spacing.lg; y: root.margin-Style.spacing.lg; width: root.width-2*root.margin+Style.spacing.lg*2; height: worldArea.y+Style.spacing.lg; color: root.theme.colors.background }
+    Rectangle { visible: !root.nativePanelMode; x: root.margin-Style.spacing.lg; y: root.margin+worldArea.y+worldArea.height+Style.spacing.sm; width: root.width-2*root.margin+Style.spacing.lg*2; height: root.height-y; color: root.theme.colors.background }
     ColumnLayout {
         id: content
         anchors.fill: parent
         anchors.margins: root.margin
         spacing: root.contentSpacing
         enabled: !root.sheetVisible
-        GridLayout {
-            id: headerGrid
+        RowLayout {
+            id: headerBar
             Layout.fillWidth: true
-            columns: 2
-            columnSpacing: root.nativePanelMode ? 18 : 28
-            rowSpacing: 3
+            spacing: root.nativePanelMode ? Style.spacing.huge : Style.space(28)
 
-            // One shared grid establishes exact horizontal tracks for both
-            // sides of the header. Status and session text therefore align to
-            // the same title/purpose baselines instead of inheriting Button
-            // padding and an unrelated implicit height.
-            Text {
-                id: headerEyebrow
-                Layout.columnSpan: 2
-                Layout.fillWidth: true
-                visible: !root.compact
-                text: "TACTICAL DISPLAY  /  LOCAL INSTRUMENTS"
-                textFormat: Text.PlainText
-                color: root.theme.colors.subdued
-                font.family: root.theme.fontFamily
-                font.pixelSize: root.theme.smallSize
-                font.letterSpacing: 1.5
-            }
-            Text {
-                id: headerTitle
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignBaseline
-                text: root.controller.view.info.name
-                textFormat: Text.PlainText
-                elide: Text.ElideRight
-                color: root.theme.colors.foreground
-                font.family: root.theme.fontFamily
-                font.pixelSize: root.compact ? root.theme.bodySize+6 : root.theme.titleSize
-                font.weight: Font.DemiBold
-            }
-            Text {
-                id: headerStatus
-                Layout.alignment: Qt.AlignRight | Qt.AlignBaseline
-                text: root.liveState + (root.controller.view.degraded.length ? " / PARTIAL" : "")
-                textFormat: Text.PlainText
-                color: root.controller.view.degraded.length ? root.theme.colors.warning : root.theme.colors.accent
-                font.family: root.theme.fontFamily
-                font.pixelSize: root.theme.smallSize
-                font.weight: Font.DemiBold
-                Accessible.role: Accessible.Button
-                Accessible.name: text
-                Accessible.description: "Inspect provider availability, age, errors and provenance"
-                MouseArea {
-                    id: statusHitArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    cursorShape: Qt.PointingHandCursor
-                    onClicked: root.controller.setFlag("showCapabilities",true)
+            ColumnLayout {
+                id: identityBlock
+                Layout.alignment: Qt.AlignVCenter
+                spacing: Style.spacing.xxs
+
+                Text {
+                    text: "TACTICAL DISPLAY"
+                    textFormat: Text.PlainText
+                    color: root.theme.colors.foreground
+                    font.family: root.theme.fontFamily
+                    font.pixelSize: root.nativePanelMode ? Style.font.subtitle : root.theme.titleSize
+                    font.weight: Font.DemiBold
+                    font.letterSpacing: 0.4
                 }
-                ToolTip.visible: statusHitArea.containsMouse
-                ToolTip.delay: 700
-                ToolTip.text: "Inspect provider availability, age, errors and provenance"
+
+                RowLayout {
+                    spacing: Style.spacing.sm
+
+                    Text {
+                        id: headerStatus
+                        Layout.alignment: Qt.AlignBaseline
+                        text: root.headerState
+                        textFormat: Text.PlainText
+                        color: root.controller.view.degraded.length || root.controller.navState.frozen ? root.theme.colors.warning : root.theme.colors.accent
+                        font.family: root.theme.fontFamily
+                        font.pixelSize: root.theme.smallSize
+                        font.weight: Font.DemiBold
+                        font.underline: statusHitArea.containsMouse
+                        Accessible.role: Accessible.Button
+                        Accessible.name: text
+                        Accessible.description: "Inspect provider availability, age, errors and provenance"
+                        MouseArea {
+                            id: statusHitArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.controller.setFlag("showCapabilities",true)
+                        }
+                        ToolTip.visible: statusHitArea.containsMouse
+                        ToolTip.delay: 700
+                        ToolTip.text: "Inspect provider availability, age, errors and provenance"
+                    }
+
+                    Text {
+                        Layout.alignment: Qt.AlignBaseline
+                        text: "·"
+                        textFormat: Text.PlainText
+                        color: root.theme.colors.subdued
+                        font.family: root.theme.fontFamily
+                        font.pixelSize: root.theme.smallSize
+                    }
+
+                    Text {
+                        id: headerContext
+                        Layout.alignment: Qt.AlignBaseline
+                        Layout.maximumWidth: root.nativePanelMode ? Style.space(320) : Style.space(460)
+                        text: root.headerContext
+                        textFormat: Text.PlainText
+                        elide: Text.ElideRight
+                        color: root.theme.colors.subdued
+                        font.family: root.theme.fontFamily
+                        font.pixelSize: root.theme.smallSize
+                    }
+                }
             }
-            Text {
-                id: headerPurpose
-                Layout.fillWidth: true
-                Layout.alignment: Qt.AlignBaseline
-                visible: !root.compact
-                text: root.controller.view.info.purpose
-                textFormat: Text.PlainText
-                elide: Text.ElideRight
-                color: root.theme.colors.subdued
-                font.family: root.theme.fontFamily
-                font.pixelSize: root.theme.bodySize
-            }
-            Text {
-                id: headerSession
-                Layout.alignment: Qt.AlignRight | Qt.AlignBaseline
-                visible: !root.compact
-                text: root.controller.effectiveSettings.privacy ? "PRIVACY ON" : "LOCAL SESSION"
-                textFormat: Text.PlainText
-                color: root.controller.effectiveSettings.privacy ? root.theme.colors.warning : root.theme.colors.subdued
-                font.family: root.theme.fontFamily
-                font.pixelSize: root.theme.smallSize
+
+            Item { Layout.fillWidth: true }
+
+            RowLayout {
+                id: headerActions
+                spacing: Style.spacing.sm
+                Layout.alignment: Qt.AlignVCenter | Qt.AlignRight
+
+                InstrumentButton {
+                    id: searchButton
+                    text: "/ Search"
+                    chosen: root.controller.navState.showSearch
+                    paletteColors: root.theme.colors
+                    fontFamily: root.theme.fontFamily
+                    textSize: root.theme.smallSize
+                    onClicked: { root.controller.setFlag("showSearch",!root.controller.navState.showSearch); if (root.controller.navState.showSearch) searchInput.forceActiveFocus() }
+                }
+                InstrumentButton {
+                    text: root.controller.freezePending ? "Freezing..." : root.controller.navState.frozen ? "Resume" : "Freeze"
+                    chosen: root.controller.navState.frozen
+                    enabled: !root.controller.freezePending
+                    hint: "Space / Exact snapshot; collection continues"
+                    paletteColors: root.theme.colors
+                    fontFamily: root.theme.fontFamily
+                    textSize: root.theme.smallSize
+                    onClicked: root.controller.toggleFreeze()
+                }
+                InstrumentButton {
+                    visible: !root.compactWidth
+                    text: "Legend"
+                    hint: "? / H"
+                    paletteColors: root.theme.colors
+                    fontFamily: root.theme.fontFamily
+                    textSize: root.theme.smallSize
+                    onClicked: root.controller.setFlag("showHelp",true)
+                }
+                InstrumentButton {
+                    visible: !root.compactWidth
+                    text: "Settings"
+                    hint: ","
+                    paletteColors: root.theme.colors
+                    fontFamily: root.theme.fontFamily
+                    textSize: root.theme.smallSize
+                    onClicked: root.controller.setFlag("showSettings",true)
+                }
+                InstrumentButton {
+                    text: "Close"
+                    hint: "Esc / Dismiss Tactical Display immediately"
+                    bordered: true
+                    paletteColors: root.theme.colors
+                    fontFamily: root.theme.fontFamily
+                    textSize: root.theme.smallSize
+                    onClicked: root.controller.dismissRequested()
+                }
             }
         }
-        Flow {
+
+        // Overlay mode keeps the richer instrument-purpose line; native panel
+        // chrome stays compact and matches BEAM Deck's two-line identity rhythm.
+        Text {
             Layout.fillWidth: true
-            spacing: 4
+            visible: !root.nativePanelMode && !root.compact
+            text: root.controller.view.info.purpose
+            textFormat: Text.PlainText
+            elide: Text.ElideRight
+            color: root.theme.colors.subdued
+            font.family: root.theme.fontFamily
+            font.pixelSize: root.theme.bodySize
+        }
+
+        Flow {
+            id: instrumentSelectorBar
+            Layout.fillWidth: true
+            spacing: Style.spacing.md
             Repeater {
                 model: Instruments.catalog
                 delegate: InstrumentButton {
                     required property var modelData
                     text: modelData.key+" "+modelData.shortName
                     chosen: root.controller.navState.instrument === modelData.id
-                    paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize
+                    paletteColors: root.theme.colors
+                    fontFamily: root.theme.fontFamily
+                    textSize: root.theme.smallSize
                     onClicked: root.controller.chooseInstrument(modelData.id)
                 }
             }
-            InstrumentButton { id: searchButton; text: "/ Search"; chosen: root.controller.navState.showSearch; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: { root.controller.setFlag("showSearch",!root.controller.navState.showSearch); if (root.controller.navState.showSearch) searchInput.forceActiveFocus() } }
-            InstrumentButton { text: root.controller.freezePending ? "Freezing..." : root.controller.navState.frozen ? "Resume" : "Freeze"; chosen: root.controller.navState.frozen; enabled: !root.controller.freezePending; hint: "Space / Exact snapshot; collection continues"; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.toggleFreeze() }
-            InstrumentButton { text: "Legend"; hint: "? / H"; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.setFlag("showHelp",true) }
-            InstrumentButton { text: "Settings"; hint: ","; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.setFlag("showSettings",true) }
-            InstrumentButton { text: "Close"; hint: "Esc / Dismiss Tactical Display immediately"; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.dismissRequested() }
         }
-        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: root.theme.colors.line; opacity: 0.75 }
+
+        Rectangle {
+            id: chromeSeparator
+            Layout.fillWidth: true
+            Layout.preferredHeight: Style.spacing.hairline
+            color: root.theme.colors.line
+            opacity: root.nativePanelMode ? 1 : 0.75
+        }
         Flow {
             Layout.fillWidth: true
-            spacing: root.nativePanelMode ? 12 : 20
+            spacing: root.nativePanelMode ? Style.spacing.xxl : Style.space(20)
             Repeater {
                 model: root.controller.view.status
                 delegate: Text {
@@ -221,7 +295,7 @@ FocusScope {
         }
         Flow {
             Layout.fillWidth: true
-            spacing: 5
+            spacing: Style.spacing.md
             visible: root.lenses.length>0 || root.controller.navState.instrument === "machine" || root.controller.navState.query.length>0 || root.controller.navState.focusKey.length>0
             Repeater {
                 model: root.lenses
@@ -237,7 +311,7 @@ FocusScope {
             InstrumentButton { visible: root.controller.navState.instrument === "connection"; text: root.controller.effectiveSettings.loopback ? "Loopback on" : "Loopback off"; hint: "O"; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.configuration.setValue("loopback",!root.controller.effectiveSettings.loopback) }
             InstrumentButton { visible: root.controller.navState.instrument === "machine"; text: root.controller.navState.trend ? "T  60-second trend" : "T  Instant state"; chosen: root.controller.navState.trend; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.setFlag("trend",!root.controller.navState.trend) }
             InstrumentButton { visible: root.controller.navState.query.length>0 || root.controller.navState.focusKey.length>0 || Object.keys(root.controller.navState.filters).length>0; text: "Reset view"; hint: "R / Backspace"; paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize; onClicked: root.controller.reset() }
-            Text { visible: root.controller.navState.query.length>0; text: root.controller.effectiveSettings.privacy ? "Search active / hidden" : "Search: "+root.controller.navState.query; textFormat: Text.PlainText; color: root.theme.colors.accent; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize; width: Math.min(300,implicitWidth); elide: Text.ElideRight; height: 30; verticalAlignment: Text.AlignVCenter }
+            Text { visible: root.controller.navState.query.length>0; text: root.controller.effectiveSettings.privacy ? "Search active / hidden" : "Search: "+root.controller.navState.query; textFormat: Text.PlainText; color: root.theme.colors.accent; font.family: root.theme.fontFamily; font.pixelSize: root.theme.smallSize; width: Math.min(Style.space(300),implicitWidth); elide: Text.ElideRight; height: Style.spacing.controlHeight; verticalAlignment: Text.AlignVCenter }
         }
         TextField {
             id: searchInput
@@ -252,8 +326,11 @@ FocusScope {
             selectionColor: root.theme.colors.accent
             selectedTextColor: root.theme.colors.background
             font.family: root.theme.fontFamily; font.pixelSize: root.theme.bodySize
-            padding: root.nativePanelMode ? 8 : 10
-            background: Rectangle { radius: 3; color: root.theme.colors.panel; border.color: searchInput.activeFocus ? root.theme.colors.accent : root.theme.colors.line }
+            leftPadding: Style.spacing.controlPaddingX
+            rightPadding: Style.spacing.controlPaddingX
+            topPadding: Style.spacing.inputPaddingY
+            bottomPadding: Style.spacing.inputPaddingY
+            background: Rectangle { radius: Style.cornerRadius; color: root.theme.colors.panel; border.width: Style.spacing.hairline; border.color: searchInput.activeFocus ? root.theme.colors.accent : root.theme.colors.line }
             onTextEdited: root.controller.setQuery(text)
             onVisibleChanged: {
                 if (visible) forceActiveFocus()
@@ -265,7 +342,7 @@ FocusScope {
         ListView {
             id: searchResults
             Layout.fillWidth: true
-            Layout.preferredHeight: Math.min(root.compact ? 88 : 132,contentHeight)
+            Layout.preferredHeight: Math.min(root.compact ? Style.space(88) : Style.space(132),contentHeight)
             visible: root.controller.navState.showSearch && root.controller.view.results.length>0
             clip: true
             model: root.controller.view.results
@@ -273,7 +350,7 @@ FocusScope {
             onCurrentIndexChanged: if (currentIndex>=0) positionViewAtIndex(currentIndex,ListView.Contain)
             delegate: InstrumentButton {
                 required property var modelData
-                width: searchResults.width; height: root.theme.bodySize+(root.nativePanelMode ? 20 : 24)
+                width: searchResults.width; height: root.theme.bodySize+(root.nativePanelMode ? Style.space(20) : Style.space(24))
                 text: modelData.name+" / "+modelData.kind+" / "+modelData.subtitle
                 chosen: modelData.selected
                 paletteColors: root.theme.colors; fontFamily: root.theme.fontFamily; textSize: root.theme.smallSize
@@ -285,18 +362,18 @@ FocusScope {
             id: worldArea
             Layout.fillWidth: true
             Layout.fillHeight: true
-            Layout.minimumHeight: 180
+            Layout.minimumHeight: Style.space(180)
             clip: true
             readonly property bool hasDetail: !!root.controller.selected
-            readonly property bool detailRight: width>=870
-            readonly property real detailWidth: hasDetail && detailRight ? Math.min(380,Math.max(300,width*0.24)) : 0
-            readonly property real detailHeight: hasDetail && !detailRight ? Math.max(0,Math.min(260,height-240)) : 0
-            readonly property real trendHeight: root.controller.navState.instrument==="machine" && root.controller.navState.trend ? Math.min(120,height*0.24) : 0
+            readonly property bool detailRight: width>=Style.space(870)
+            readonly property real detailWidth: hasDetail && detailRight ? Math.min(Style.space(380),Math.max(Style.space(300),width*0.24)) : 0
+            readonly property real detailHeight: hasDetail && !detailRight ? Math.max(0,Math.min(Style.space(260),height-Style.space(240))) : 0
+            readonly property real trendHeight: root.controller.navState.instrument==="machine" && root.controller.navState.trend ? Math.min(Style.space(120),height*0.24) : 0
             Visual.Field {
                 id: field
                 x: 0; y: 0
-                width: worldArea.width-(worldArea.detailWidth?worldArea.detailWidth+(root.nativePanelMode ? 12 : 18):0)
-                height: worldArea.height-(worldArea.detailHeight?worldArea.detailHeight+12:0)-(worldArea.trendHeight?worldArea.trendHeight+8:0)
+                width: worldArea.width-(worldArea.detailWidth?worldArea.detailWidth+(root.nativePanelMode ? Style.spacing.xxl : Style.spacing.huge):0)
+                height: worldArea.height-(worldArea.detailHeight?worldArea.detailHeight+Style.spacing.xxl:0)-(worldArea.trendHeight?worldArea.trendHeight+Style.spacing.lg:0)
                 view: root.controller.view
                 theme: root.theme
                 active: root.active
@@ -308,15 +385,15 @@ FocusScope {
                 onHovered: key => root.controller.hoveredKey = key
             }
             Text {
-                x: 20; y: Math.max(52,field.height*0.38)
-                width: Math.max(100,field.width-40)
+                x: Style.space(20); y: Math.max(Style.space(52),field.height*0.38)
+                width: Math.max(Style.space(100),field.width-Style.space(40))
                 text: root.controller.displayFrame.schemaVersion ? root.controller.view.empty : "Acquiring local machine state...\nThe field appears as each provider becomes available."
                 textFormat: Text.PlainText; wrapMode: Text.Wrap; horizontalAlignment: Text.AlignHCenter
                 color: root.theme.colors.subdued; font.family: root.theme.fontFamily; font.pixelSize: root.theme.bodySize
                 visible: !root.controller.view.visibleNodes.length
             }
             Visual.Trend {
-                x: 0; y: field.height+8
+                x: 0; y: field.height+Style.spacing.lg
                 width: field.width; height: worldArea.trendHeight
                 visible: height>0
                 theme: root.theme
@@ -345,7 +422,7 @@ FocusScope {
             font.family: root.theme.fontFamily
             font.pixelSize: root.theme.smallSize
         }
-        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: root.theme.colors.line; opacity: 0.6 }
+        Rectangle { Layout.fillWidth: true; Layout.preferredHeight: Style.spacing.hairline; color: root.theme.colors.line; opacity: 0.6 }
         Text {
             Layout.fillWidth: true
             text: root.hoverEntity ? root.hoverEntity.name+" / "+root.hoverEntity.kind+" / "+root.hoverEntity.subtitle : root.controller.telemetry && root.controller.telemetry.backendError ? root.controller.effectiveSettings.privacy ? "Backend issue / details hidden by privacy. Open data sources." : root.controller.telemetry.backendError : root.controller.view.note
