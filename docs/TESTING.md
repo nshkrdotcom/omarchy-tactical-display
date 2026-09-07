@@ -110,6 +110,8 @@ The first command requires Omarchy, Hyprland and Wayland. Its lifecycle phase re
 
 The audio runner requires `pw-dump`, `pw-play` and a real sink. It creates a temporary silent stream, verifies that the actual stream and route appear, then cleans up its own stream. It does not change defaults, volume or mute.
 
+Native lifecycle/soak launches explicitly request privacy for that invocation, so automated desktop checks do not display host identities or change the saved privacy preference. Avoid editing files anywhere in the watched plugin tree during a soak: Omarchy intentionally reloads changed plugins, dismissing the open surface and invalidating that run. Keep evidence and any concurrent development outside the plugin tree.
+
 On native-runner failure, `failureContext` records matching helpers and the last known helper/shell process state **before cleanup**. This distinguishes a missing loaded plugin instance from exited processes without allowing automatic hide/unload to erase that evidence. Compare `startTicks` with prior samples before interpreting a reused PID. The runner does not relax its limits or silently reopen a lost instance.
 
 Overlay lifecycle debug lines distinguish an explicit plugin hide request (`escape`, `back`, `close-control`, `native-panel`, `no-screens`) from host close and component destruction. The reason is allowlisted and contains no entity identity or payload. A host close without a preceding hide request is not evidence of a keyboard dismissal inside the plugin. Inspect these with `quickshell log -p "$OMARCHY_PATH/shell" --no-color` when a native run loses its instance.

@@ -63,6 +63,13 @@ def diagnostic() -> dict:
     return value
 
 
+def summon_private(mode: str) -> str:
+    # Native acceptance may be observed or captured. Redact this invocation
+    # without changing the operator's persistent privacy preference.
+    return command('omarchy-shell', 'shell', 'summon', PLUGIN,
+                   json.dumps({'instrument': mode, 'privacy': True}))
+
+
 def wait_ready(mode: str, timeout: float=10) -> dict:
     until=time.monotonic()+timeout;last='not loaded'
     while time.monotonic()<until:
@@ -169,7 +176,7 @@ def main() -> int:
         command('omarchy-shell','shell','hide',PLUGIN)
         for i in range(a.cycles):
             mode=MODES[i%len(MODES)];start=time.monotonic()
-            command('omarchy-shell','shell','summon',PLUGIN,json.dumps({'instrument':mode}))
+            summon_private(mode)
             d=wait_ready(mode);ready_ms=round((time.monotonic()-start)*1000,2);helpers=matching_helpers()
             if ready_ms>a.max_ready_ms:raise RuntimeError('Overlay readiness exceeded configured latency budget')
             if isinstance(d.get('sampleDurationMs'),(int,float)) and d['sampleDurationMs']>a.max_sample_ms:raise RuntimeError('Helper sample latency exceeded configured budget')
@@ -187,7 +194,7 @@ def main() -> int:
             # already covered by the lifecycle cycles and per-instrument profiles;
             # repeatedly re-summoning an already-open panel exercises host summon
             # replay semantics rather than the plugin's normal in-session controls.
-            start=time.monotonic();mode=a.soak_instrument;command('omarchy-shell','shell','summon',PLUGIN,json.dumps({'instrument':mode}));wait_ready(mode)
+            start=time.monotonic();mode=a.soak_instrument;summon_private(mode);wait_ready(mode)
             report['soakInstrument']=mode
             last_seq=None;last_pid=None;last_helper=None;last_helper_at=None;hz=os.sysconf('SC_CLK_TCK')
             while time.monotonic()-start<a.soak_seconds:

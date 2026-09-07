@@ -19,6 +19,7 @@ The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and
 
 - Fullscreen now shares the TD-click panel's native typography, header/action alignment, popup colors, spacing and border contract. The clicked panel's title size and top-right controls are unchanged; launch behavior remains unchanged.
 - Identity-free dismissal diagnostics distinguish explicit Escape/Back/Close requests from host closure and overlay destruction.
+- Native acceptance launches redact displayed identities without changing the operator's saved privacy preference.
 - Audio pin/event aliases follow actual PipeWire media classes; mount pins expire cached capacity independently of provider freshness.
 - Activity has a consistent left reading edge, and paired trends retain both numeric legends at compact widths.
 
