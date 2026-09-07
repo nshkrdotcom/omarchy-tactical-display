@@ -9,7 +9,7 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 class FailureEvidenceTests(unittest.TestCase):
-    def test_native_acceptance_summons_private_without_changing_saved_preferences(self):
+    def test_native_acceptance_requests_per_invocation_privacy(self):
         spec = spec_from_file_location('native_private_acceptance', ROOT / 'scripts/live-validate.py')
         runner = module_from_spec(spec)
         spec.loader.exec_module(runner)

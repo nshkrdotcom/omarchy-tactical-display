@@ -67,7 +67,8 @@ Item {
     Timer { id: updateTimer; interval: 0; onTriggered: root.relayout() }
     Connections { target: root.theme; function onColorsChanged() { fieldCanvas.requestPaint() }
         function onFontFamilyChanged() { root.schedule() }
-        function onBodySizeChanged() { root.schedule() } }
+        function onBodySizeChanged() { root.schedule() }
+        function onSmallSizeChanged() { root.schedule() } }
 
     Canvas {
         id: fieldCanvas

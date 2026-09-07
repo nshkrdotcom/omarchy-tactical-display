@@ -25,6 +25,13 @@ TestCase {
     Component { id: trendComponent; Trend { theme: testTheme } }
     Component { id: buttonComponent; InstrumentButton { paletteColors: testTheme.colors; chosen: true; text: "Selected choice" } }
     Component { id: shellComponent; TacticalDisplayShell { controller: suite.subject; theme: testTheme } }
+    Component {
+        id: fieldComponent
+        Field {
+            theme: hostTheme
+            view: ({instrument:"machine",visibleNodes:[{key:"subsystem:cpu",kind:"subsystem",zone:"compute",name:"COMPUTE",subtitle:"CPU stall pressure",priority:1,related:true,match:true,raw:{}}],edges:[]})
+        }
+    }
     readonly property var subject: controller
     function descendants(item) {
         var result=[]
@@ -66,6 +73,28 @@ TestCase {
             {tag:"large-monitor",surfaceWidth:1900,surfaceHeight:1040},
             {tag:"native-small-type",surfaceWidth:1260,surfaceHeight:740,font:{family:"monospace",caption:10,body:12,subtitle:13,title:15}},
             {tag:"larger-host-type",surfaceWidth:1260,surfaceHeight:740,font:{family:"monospace",caption:20,body:24,subtitle:26,title:30}}]
+    }
+    function test_caption_token_change_relayouts_unchanged_field() {
+        var oldFont=Style.font
+        try {
+            var f=createTemporaryObject(fieldComponent,suite,{width:900,height:520})
+            verify(f)
+            tryVerify(function(){return f.scene.labels.length===1})
+            var originalView=f.view,oldHeight=f.scene.labels[0].h,position=f.scene.nodes[0]
+            Style.font=Object.assign({},Style.font,{caption:Style.font.caption+12})
+            tryVerify(function(){return f.scene.labels[0].h===oldHeight+12},1000,
+                "Frozen/unchanged data must still reflow labels when the host caption token changes")
+            compare(f.view,originalView,"A theme change must not mutate observation data")
+            compare(f.scene.labels[0].key,"subsystem:cpu")
+            compare(f.scene.nodes[0].x,position.x)
+            compare(f.scene.nodes[0].y,position.y)
+            f.active=false
+            Style.font=oldFont
+            wait(20)
+            compare(f.scene.labels[0].h,oldHeight+12,"Inactive fields must not schedule rendering work")
+            f.active=true
+            tryVerify(function(){return f.scene.labels[0].h===oldHeight})
+        } finally { Style.font=oldFont }
     }
     function test_shared_header_preserves_native_geometry(data) {
         var oldFont=Style.font
