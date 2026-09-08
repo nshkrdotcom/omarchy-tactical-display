@@ -9,7 +9,7 @@ class ManifestContractTests(unittest.TestCase):
     def test_manifest_is_quattro_overlay(self):
         manifest = json.loads((ROOT / "manifest.json").read_text())
         self.assertEqual(manifest["schemaVersion"], 1)
-        self.assertEqual(manifest["id"], "nshkr.tactical-display")
+        self.assertEqual(manifest["id"], "com.nshkr.tactical-display")
         self.assertEqual(manifest["kinds"], ["overlay", "bar-widget"])
         self.assertEqual(manifest["entryPoints"]["barWidget"], "BarWidget.qml")
         self.assertTrue((ROOT / "BarWidget.qml").is_file())
@@ -35,7 +35,7 @@ class ManifestContractTests(unittest.TestCase):
         self.assertRegex(readme, r"(?mi)^## Install\s*$")
         self.assertIn("omarchy plugin add", readme)
         self.assertRegex(readme, r"(?mi)^### Remove\s*$")
-        self.assertIn("omarchy plugin remove nshkr.tactical-display", readme)
+        self.assertIn("omarchy plugin remove com.nshkr.tactical-display", readme)
         self.assertRegex(readme, r"(?mi)^## Requirements and External Dependencies\s*$")
         for dependency in ("Python", "pw-dump", "wpctl", "nvidia-smi", "maxminddb"):
             self.assertIn(dependency, readme)

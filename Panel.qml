@@ -6,7 +6,7 @@ import "model/Settings.js" as Settings
 
 Ui.Panel {
     id: root
-    moduleName: "nshkr.tactical-display"
+    moduleName: "com.nshkr.tactical-display"
     manageIpc: false
 
     property var anchorItem: null

@@ -4,7 +4,7 @@ import "../model/Settings.js" as Settings
 QtObject {
     id: root
     property var host: null
-    property string pluginId: "nshkr.tactical-display"
+    property string pluginId: "com.nshkr.tactical-display"
     property var values: Settings.normalize({}).values
     property var warnings: []
     property bool readOnly: false

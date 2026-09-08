@@ -7,8 +7,8 @@ const metrics=t=>Array.from(t).reduce((n,c)=>n+(c.codePointAt(0)>0x2e80?16.8:8.4
 test('configuration migrates, validates and preserves unknown inline host fields',()=>{
  assert.equal(S.normalize({tdRefreshProfile:'bogus',tdPrivacy:'yes'}).values.refreshProfile,'balanced');
  assert.equal(S.normalize({tdVersion:50}).readOnly,true);
- const config={bar:{layout:{left:[{id:'nshkr.tactical-display',futureField:'keep',tdPrivacy:true}],center:[],right:[]}},plugins:[]};
- const e=S.entryFromShell(config,'nshkr.tactical-display'),merged=S.mergedEntry(e,S.normalize(e).values);
+ const config={bar:{layout:{left:[{id:'com.nshkr.tactical-display',futureField:'keep',tdPrivacy:true}],center:[],right:[]}},plugins:[]};
+ const e=S.entryFromShell(config,'com.nshkr.tactical-display'),merged=S.mergedEntry(e,S.normalize(e).values);
  assert.equal(merged.futureField,'keep');assert.equal(merged.tdPrivacy,true);assert.equal(config.bar.layout.left[0].tdPrivacy,true);
 });
 test('malformed, oversized, and command-like payloads cannot become executable input',()=>{

@@ -83,5 +83,5 @@ class HoldTests(unittest.TestCase):
             self.invoke('hold-press', runner=fail)
         self.invoke('hold-press')
         self.assertEqual(self.calls, [])
-        state = self.root / 'nshkr.tactical-display' / 'hold.json'
+        state = self.root / 'com.nshkr.tactical-display' / 'hold.json'
         self.assertEqual(state.stat().st_mode & 0o777, 0o600)

@@ -18,7 +18,7 @@ from typing import Callable, Iterator
 
 from .common import run_command
 
-PLUGIN_ID = 'nshkr.tactical-display'
+PLUGIN_ID = 'com.nshkr.tactical-display'
 TOKEN = re.compile(r'^[0-9]{10,12}:[A-Za-z0-9_.:-]{1,110}$')
 
 

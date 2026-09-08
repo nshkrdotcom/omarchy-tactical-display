@@ -74,8 +74,8 @@ omarchy plugin add "$PWD" --enable
 The compact bar widget declares the right section as its default. To place or move it explicitly:
 
 ```bash
-omarchy bar put nshkr.tactical-display
-omarchy bar move nshkr.tactical-display --section right --index 0
+omarchy bar put com.nshkr.tactical-display
+omarchy bar move com.nshkr.tactical-display --section right --index 0
 ```
 
 - **Left-click**: toggle the native Tactical Display panel from the bar.
@@ -86,13 +86,13 @@ omarchy bar move nshkr.tactical-display --section right --index 0
 Git-managed installations use Omarchy's normal update path:
 
 ```bash
-omarchy plugin update nshkr.tactical-display
+omarchy plugin update com.nshkr.tactical-display
 ```
 
 ### Remove
 
 ```bash
-omarchy plugin remove nshkr.tactical-display
+omarchy plugin remove com.nshkr.tactical-display
 ```
 
 Tactical Display does not install a privileged helper, persistent host service, or external database. Removing the plugin removes its Omarchy checkout/config entry; a user-supplied offline MMDB remains wherever the user placed it.

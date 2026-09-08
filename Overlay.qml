@@ -21,7 +21,7 @@ Item {
     property var renderStatistics: ({})
     property var currentScreens: Quickshell.screens
     readonly property string pluginDir: manifest && manifest.__sourceDir ? String(manifest.__sourceDir) : ""
-    readonly property string pluginId: manifest && manifest.id ? String(manifest.id) : "nshkr.tactical-display"
+    readonly property string pluginId: manifest && manifest.id ? String(manifest.id) : "com.nshkr.tactical-display"
     readonly property bool telemetryNeeded: opened && currentScreens.length>0
 
     // Read-only, identity-free evidence for the native operator acceptance runner.

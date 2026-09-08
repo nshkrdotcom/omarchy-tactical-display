@@ -62,7 +62,7 @@ git -C "$OMARCHY_PATH" rev-parse HEAD
 quickshell --version
 hyprctl version
 /usr/bin/python3 --version
-omarchy plugin validate ~/.config/omarchy/plugins/nshkr.tactical-display
+omarchy plugin validate ~/.config/omarchy/plugins/com.nshkr.tactical-display
 ```
 
 Run the installed `qmllint` against the installed Quattro import tree. Confirm the installed Quickshell `Process` exposes `clearEnvironment`, `environment` and `signal(int)`, and exercise the plugin's SIGTERM-to-SIGKILL escalation against a deliberately stuck helper. Compare import-metadata warnings with a first-party widget using the same imports and fix plugin-local warnings rather than globally suppressing them. The source references above establish the integration contract; native validation and direct interaction establish compatibility with the actual workstation.

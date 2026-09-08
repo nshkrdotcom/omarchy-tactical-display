@@ -32,7 +32,7 @@ def source_checks() -> list[str]:
             errors.append('repository symlink: ' + str(path.relative_to(ROOT)))
     try:
         manifest = json.loads((ROOT / 'manifest.json').read_text())
-        if manifest.get('id') != 'nshkr.tactical-display' or manifest.get('version') != '1.0.0':
+        if manifest.get('id') != 'com.nshkr.tactical-display' or manifest.get('version') != '1.0.0':
             errors.append('manifest id/version mismatch')
     except (OSError, ValueError):
         errors.append('manifest is unreadable/invalid')

@@ -4,7 +4,7 @@
   "type": "object",
   "properties": {
     "id": {
-      "const": "nshkr.tactical-display"
+      "const": "com.nshkr.tactical-display"
     },
     "tdVersion": {
       "type": "integer",

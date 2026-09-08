@@ -6,7 +6,7 @@ import "model/InstrumentModel.js" as Instruments
 
 Ui.BarWidget {
     id: root
-    moduleName: "nshkr.tactical-display"
+    moduleName: "com.nshkr.tactical-display"
     property string omarchyPath: ""
     property var shell: null
     property var manifest: null

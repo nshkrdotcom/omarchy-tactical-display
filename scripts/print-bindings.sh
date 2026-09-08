@@ -8,12 +8,12 @@ cat <<'LUA'
 do
   local hold_token = nil
   local sequence = 0
-  local helper = os.getenv("HOME") .. "/.config/omarchy/plugins/nshkr.tactical-display/scripts/invoke.py"
+  local helper = os.getenv("HOME") .. "/.config/omarchy/plugins/com.nshkr.tactical-display/scripts/invoke.py"
   local function quote(s) return "'" .. s:gsub("'", "'\\''") .. "'" end
   local function invoke(action, token)
     hl.dispatch(hl.dsp.exec_cmd("/usr/bin/python3 -B " .. quote(helper) .. " " .. action .. " --token " .. quote(token)))
   end
-  o.bind("SUPER + F10", "Tactical Display toggle", "omarchy-shell shell toggle nshkr.tactical-display '{}'")
+  o.bind("SUPER + F10", "Tactical Display toggle", "omarchy-shell shell toggle com.nshkr.tactical-display '{}'")
   o.bind("SUPER + F11", "Tactical Display hold", function()
     if hold_token then return end
     sequence = sequence + 1
@@ -29,5 +29,5 @@ do
   end, { release = true, ignore_mods = true, non_consuming = true })
 end
 -- Emergency close after compositor/keymap reload during a hold:
--- omarchy-shell shell hide nshkr.tactical-display
+-- omarchy-shell shell hide com.nshkr.tactical-display
 LUA

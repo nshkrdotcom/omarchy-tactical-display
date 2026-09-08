@@ -73,7 +73,7 @@ Source-level tests protect the shortcut ownership rules, but keyboard focus is c
 
 ```bash
 omarchy menu keybindings --print
-omarchy-shell shell summon nshkr.tactical-display '{}'
+omarchy-shell shell summon com.nshkr.tactical-display '{}'
 ```
 
 If `wtype` is already available, it can make the basic sequence repeatable (do not install it solely for this test):
@@ -95,7 +95,7 @@ Observe all of the following directly:
 - The instrument picker owns unmodified arrows, `Home`/`End`, `Enter`, and `Backspace`; while the picker is visible, the Tactical surface routes bare `1-5` directly to instrument selection so child focus cannot swallow them. Command-modified digits are not intercepted.
 - `Escape` dismisses the overlay in one stroke from field navigation, search, the picker, settings/help/capabilities, and focused controls.
 - Pointer selection after control focus and reopening after a hide/summon cycle never leaves the overlay in a dead or stale keyboard-focus state.
-- `make bindings` only prints Lua. If testing the optional hold binding, review collisions first, add the block manually, reload Hyprland, and verify both `Super+F11` press and the matching F11 release; `omarchy-shell shell hide nshkr.tactical-display` remains the recovery command.
+- `make bindings` only prints Lua. If testing the optional hold binding, review collisions first, add the block manually, reload Hyprland, and verify both `Super+F11` press and the matching F11 release; `omarchy-shell shell hide com.nshkr.tactical-display` remains the recovery command.
 
 Record this gate as NOT RUN unless it was actually exercised on the target Wayland/Omarchy desktop.
 

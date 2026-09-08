@@ -22,7 +22,7 @@ def main() -> int:
         print(result)
         return 0
     except (OSError, ValueError, RuntimeError, TimeoutError) as error:
-        print(f'Tactical Display: {error}. Emergency dismiss: omarchy-shell shell hide nshkr.tactical-display', file=sys.stderr)
+        print(f'Tactical Display: {error}. Emergency dismiss: omarchy-shell shell hide com.nshkr.tactical-display', file=sys.stderr)
         return 1
 
 

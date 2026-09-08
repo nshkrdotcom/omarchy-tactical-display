@@ -14,7 +14,7 @@ import time
 ROOT=Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:sys.path.insert(0,str(ROOT))
 from td_telemetry.common import proc_child_count
-PLUGIN='nshkr.tactical-display'
+PLUGIN='com.nshkr.tactical-display'
 MODES=('connection','processes','machine','storage','audio')
 
 

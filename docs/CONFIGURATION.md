@@ -2,7 +2,7 @@
 
 Current settings schema: **tdVersion = 1**. Runtime authority is `model/Settings.js`; the machine-readable current-version schema is `config/settings.schema.json`.
 
-Settings live in the existing native Quattro entry for `nshkr.tactical-display`: first the bar layout entry, otherwise the top-level plugins entry. `Configuration.qml` uses `shell.updateEntryInline` with the complete merged previous entry. Unknown keys remain intact. It does not rewrite shell.json independently, and installation does not silently rearrange the bar. Missing host/entry gives an explicit session-only notice. A newer tdVersion is read-only rather than overwritten by a downgrade.
+Settings live in the existing native Quattro entry for `com.nshkr.tactical-display`: first the bar layout entry, otherwise the top-level plugins entry. `Configuration.qml` uses `shell.updateEntryInline` with the complete merged previous entry. Unknown keys remain intact. It does not rewrite shell.json independently, and installation does not silently rearrange the bar. Missing host/entry gives an explicit session-only notice. A newer tdVersion is read-only rather than overwritten by a downgrade.
 
 | Native key | Default | Values / behavior |
 |---|---|---|
@@ -24,13 +24,13 @@ Settings live in the existing native Quattro entry for `nshkr.tactical-display`:
 For a bar-hosted entry, native CLI examples:
 
 ```bash
-omarchy bar set nshkr.tactical-display tdAnimation reduced
-omarchy bar set nshkr.tactical-display tdRefreshProfile efficient
-omarchy bar set nshkr.tactical-display tdPrivacy true --json
-omarchy bar set nshkr.tactical-display tdAliases '{"192.0.2.20":"Lab service"}' --json
-omarchy bar set nshkr.tactical-display tdNaming dns
+omarchy bar set com.nshkr.tactical-display tdAnimation reduced
+omarchy bar set com.nshkr.tactical-display tdRefreshProfile efficient
+omarchy bar set com.nshkr.tactical-display tdPrivacy true --json
+omarchy bar set com.nshkr.tactical-display tdAliases '{"192.0.2.20":"Lab service"}' --json
+omarchy bar set com.nshkr.tactical-display tdNaming dns
 # Return to local-only naming:
-omarchy bar set nshkr.tactical-display tdNaming local
+omarchy bar set com.nshkr.tactical-display tdNaming local
 ```
 
 `192.0.2.20` is a documentation example, not a real recommended endpoint. Use the settings sheet for a plugin-only entry without a bar placement. Direct editing while the host is running can conflict with its in-memory configuration; prefer the host APIs or stop the shell first and retain a backup.
@@ -38,8 +38,8 @@ omarchy bar set nshkr.tactical-display tdNaming local
 Invocation payloads accept `instrument`, `mode` (toggle/hold), `monitor` (legacy `screen` also accepted), `picker`, `help`, optional `privacy`, typed `focus` and `filters`. Unknown keys are inert. Payloads over 32 KiB or malformed JSON yield defaults and a notice, not execution.
 
 ```bash
-omarchy-shell shell summon nshkr.tactical-display '{"instrument":"connection","monitor":"DP-1","privacy":true,"filters":{"protocol":"tcp","state":"live"}}'
-omarchy-shell shell summon nshkr.tactical-display '{"instrument":"processes","focus":{"processKey":"process:1234:98765"}}'
+omarchy-shell shell summon com.nshkr.tactical-display '{"instrument":"connection","monitor":"DP-1","privacy":true,"filters":{"protocol":"tcp","state":"live"}}'
+omarchy-shell shell summon com.nshkr.tactical-display '{"instrument":"processes","focus":{"processKey":"process:1234:98765"}}'
 ```
 
 The process key above is illustrative. Obtain the actual full instance key from current detail, not merely a PID. Actual provider keys are opaque identities; never synthesize an action target from a displayed PID. Filter keys are direction/protocol/state/emphasis/lens and use the choices shown in the instrument's lens rail. Per-instrument transient lenses are session state, not persisted raw observations.
